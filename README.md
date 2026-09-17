@@ -43,7 +43,7 @@ ollama pull qwen2.5:3b
 ## Uso
 
 ```bash
-python convertYourFile.py
+python main.py
 ```
 
 1. Seleccioná o arrastrá un archivo de audio (mp3, wav, ogg, flac, m4a, wma, aac, opus)
@@ -59,7 +59,7 @@ python convertYourFile.py
 
 ## Configuración
 
-En `convertYourFile.py`, al inicio:
+En `main.py`, al inicio:
 
 | Constante | Default | Qué hace |
 |---|---|---|
