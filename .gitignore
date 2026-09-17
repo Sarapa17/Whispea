@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Historial local (datos del usuario)
+ConvertYourFileHistory/
+
+# Notas personales
+machete.txt
+
+# Artefactos de herramientas locales
+.omo/
+.codegraph/
