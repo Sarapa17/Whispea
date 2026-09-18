@@ -4,7 +4,7 @@ __pycache__/
 venv/
 
 # Historial local (datos del usuario)
-ConvertYourFileHistory/
+history/
 
 # Notas personales
 machete.txt

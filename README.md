@@ -55,7 +55,7 @@ python main.py
 
 - **Transcripción**: [OpenAI Whisper](https://github.com/openai/whisper) corre 100% local en CPU (el audio se convierte a WAV 16kHz con FFmpeg primero)
 - **Resumen**: la app le pega a un server local de [Ollama](https://ollama.com) (`http://localhost:11434`) con el modelo configurado — el texto nunca sale de tu máquina
-- **Historial**: todo queda en `ConvertYourFileHistory/` (fuera del repo, son tus datos)
+- **Historial**: todo queda en `history/` (queda fuera de git, son tus datos)
 
 ## Configuración
 
