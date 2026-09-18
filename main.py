@@ -15,15 +15,45 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QTextEdit, QListWidget, QFileDialog, QMessageBox,
                              QProgressBar, QSplitter, QListWidgetItem)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent
+from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QIcon, QPainter, QPixmap, QColor
 
 import subprocess
 import urllib.request
 import urllib.error
 
 OLLAMA_MODEL = "qwen2.5:3b"
-PROMPT_TEMPLATE = "Resumí el siguiente texto en español, en un párrafo conciso y claro:\n\n{texto}"
+PROMPT_TEMPLATE = (
+    "Sos un asistente que resume textos. Devolvé ÚNICAMENTE el resumen en el idioma del texto original, "
+    "en un párrafo conciso y claro.\n"
+    "REGLAS ESTRICTAS:\n"
+    "- NO escribas introducciones, saludos ni confirmaciones (nada de \"claro\", \"aquí está\", \"este es el resumen\", etc.).\n"
+    "- NO repitas estas instrucciones.\n"
+    "- NO uses Markdown ni títulos.\n"
+    "- Empezá directamente con el contenido del resumen.\n\n"
+    "Texto a resumir:\n{texto}\n\n"
+    "Resumen:"
+)
 MAX_SUMMARY_INPUT_CHARS = 25000
+
+
+def make_flag_icon(country):
+    """Dibuja la bandera de España o USA en un QPixmap (los emoji de bandera no renderizan en Windows)"""
+    pm = QPixmap(24, 16)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    if country == "es":
+        p.fillRect(0, 0, 24, 4, Qt.red)
+        p.fillRect(0, 4, 24, 8, QColor(241, 191, 0))
+        p.fillRect(0, 12, 24, 4, Qt.red)
+    else:
+        stripe_h = 16 // 13
+        for i in range(13):
+            if i % 2 == 0:
+                p.fillRect(0, i * stripe_h, 24, stripe_h, Qt.red)
+        p.fillRect(0, 0, 10, 8, QColor(60, 59, 110))
+    p.end()
+    return QIcon(pm)
+
 
 # Cargar traducciones desde archivo externo
 def load_translations():
@@ -34,7 +64,7 @@ def load_translations():
         # Fallback a traducciones básicas si el archivo no existe
         return {
             "es": {
-                "app_title": "ConvertYourFile",
+                "app_title": "Whispea",
                 "audio_transcription": "Transcripción de Audio",
                 "whisper_model": "Modelo Whisper:",
                 "select_audio": "Seleccionar archivo de audio",
@@ -81,53 +111,53 @@ def load_translations():
                 "no_text_summary": "No hay texto para resumir.",
                 "summary_error": "Error al generar el resumen"
             },
-            "es_LA": {
-                "app_title": "ConvertYourFile",
-                "audio_transcription": "Transcripción de Audio",
-                "whisper_model": "Modelo Whisper:",
-                "select_audio": "Seleccionar archivo de audio",
-                "drag_audio": "O arrastra un archivo de audio aquí",
-                "ready": "Listo para transcribir",
-                "transcription_history": "Historial de Transcripciones",
-                "transcribed_text": "Texto Transcrito",
-                "save_text": "Guardar texto",
-                "copy_text": "Copiar texto",
-                "clear": "Limpiar",
-                "language": "Idioma:",
-                "transcription_language": "Idioma de transcripción:",
-                "auto_detect": "Detección automática",
-                "checking_ffmpeg": "Verificando FFmpeg...",
-                "converting_audio": "Convirtiendo audio...",
-                "loading_model": "Cargando modelo Whisper...",
-                "transcribing": "Transcribiendo...",
-                "saving_results": "Guardando resultados...",
-                "transcription_complete": "Transcripción completada con éxito",
-                "error_saving": "Error al guardar en el historial",
-                "no_text_warning": "No hay texto para guardar.",
-                "no_text_copy": "No hay texto para copiar.",
-                "text_saved": "Texto guardado correctamente.",
-                "text_copied": "Texto copiado al portapapeles.",
-                "invalid_file": "Archivo no válido",
-                "select_valid_audio": "Por favor, selecciona un archivo de audio válido.",
+            "en": {
+                "app_title": "Whispea",
+                "audio_transcription": "Audio Transcription",
+                "whisper_model": "Whisper Model:",
+                "select_audio": "Select audio file",
+                "drag_audio": "Or drag an audio file here",
+                "ready": "Ready to transcribe",
+                "transcription_history": "Transcription History",
+                "transcribed_text": "Transcribed Text",
+                "save_text": "Save text",
+                "copy_text": "Copy text",
+                "clear": "Clear",
+                "language": "Language:",
+                "transcription_language": "Transcription language:",
+                "auto_detect": "Auto detect",
+                "checking_ffmpeg": "Checking FFmpeg...",
+                "converting_audio": "Converting audio...",
+                "loading_model": "Loading Whisper model...",
+                "transcribing": "Transcribing...",
+                "saving_results": "Saving results...",
+                "transcription_complete": "Transcription completed successfully",
+                "error_saving": "Error saving to history",
+                "no_text_warning": "No text to save.",
+                "no_text_copy": "No text to copy.",
+                "text_saved": "Text saved successfully.",
+                "text_copied": "Text copied to clipboard.",
+                "invalid_file": "Invalid file",
+                "select_valid_audio": "Please select a valid audio file.",
                 "error": "Error",
-                "success": "Éxito",
-                "warning": "Advertencia",
-                "starting_transcription": "Iniciando transcripción...",
-                "ffmpeg_error": "FFmpeg no está instalado",
-                "conversion_error": "Error en la conversión del audio",
-                "unexpected_error": "Error inesperado",
-                "load_error": "No se pudo cargar el texto",
-                "convert_file": "Convertir archivo",
-                "file_conversion": "Conversión de archivo",
-                "supported_formats": "Formatos soportados",
-                "summarize_ai": "Resumir con IA",
-                "summarized_text": "Texto Resumido",
-                "copy_summary": "Copiar resumen",
-                "summarizing_ai": "Resumiendo con IA...",
-                "summary_complete": "Resumen completado",
-                "ollama_error": "Ollama no está disponible. Instalalo con 'winget install Ollama.Ollama' y asegurate de que esté corriendo.",
-                "no_text_summary": "No hay texto para resumir.",
-                "summary_error": "Error al generar el resumen"
+                "success": "Success",
+                "warning": "Warning",
+                "starting_transcription": "Starting transcription...",
+                "ffmpeg_error": "FFmpeg is not installed",
+                "conversion_error": "Error converting audio",
+                "unexpected_error": "Unexpected error",
+                "load_error": "Could not load text",
+                "convert_file": "Convert file",
+                "file_conversion": "File conversion",
+                "supported_formats": "Supported formats",
+                "summarize_ai": "Summarize with AI",
+                "summarized_text": "Summarized Text",
+                "copy_summary": "Copy summary",
+                "summarizing_ai": "Summarizing with AI...",
+                "summary_complete": "Summary completed",
+                "ollama_error": "Ollama is not available. Install it with 'winget install Ollama.Ollama' and make sure it is running.",
+                "no_text_summary": "There is no text to summarize.",
+                "summary_error": "Error generating summary"
             }
         }
 
@@ -304,7 +334,7 @@ class SummaryThread(QThread):
                     "model": OLLAMA_MODEL,
                     "prompt": PROMPT_TEMPLATE.format(texto=self.text),
                     "stream": False,
-                    "options": {"num_ctx": 8192}
+                    "options": {"num_ctx": 8192, "temperature": 0.2, "top_p": 0.9}
                 }, ensure_ascii=False).encode("utf-8")
                 req = urllib.request.Request(
                     "http://localhost:11434/api/generate",
@@ -362,40 +392,25 @@ class AudioTranscriberApp(QMainWindow):
         title_label.setFont(QFont("Arial", 16, QFont.Bold))
         left_layout.addWidget(title_label)
         
-        # Selección de idioma de interfaz
-        ui_lang_layout = QHBoxLayout()
-        ui_lang_label = QLabel(TRANSLATIONS[self.current_language]["language"])
-        self.ui_lang_combo = QComboBox()
-        
-        # Agregar idiomas disponibles con nombres descriptivos
-        language_names = {
-            "es": "Español (España)",
-            "es_LA": "Español (Latinoamérica)",
-            "en": "English",
-            "fr": "Français",
-            "de": "Deutsch",
-            "pt": "Português",
-            "it": "Italiano",
-            "ja": "日本語",
-            "zh": "中文",
-            "ru": "Русский"
-        }
-        
-        # Agregar solo los idiomas que están en las traducciones
-        for lang_code in TRANSLATIONS.keys():
-            if lang_code in language_names:
-                self.ui_lang_combo.addItem(language_names[lang_code], lang_code)
-        
-        # Establecer el idioma actual
-        for i in range(self.ui_lang_combo.count()):
-            if self.ui_lang_combo.itemData(i) == self.current_language:
-                self.ui_lang_combo.setCurrentIndex(i)
-                break
-                
-        self.ui_lang_combo.currentIndexChanged.connect(self.change_ui_language)
-        ui_lang_layout.addWidget(ui_lang_label)
-        ui_lang_layout.addWidget(self.ui_lang_combo)
-        left_layout.addLayout(ui_lang_layout)
+        # Selector de idioma con banderas (discreto, junto al título)
+        lang_row = QHBoxLayout()
+        self.btn_es = QPushButton()
+        self.btn_es.setIcon(make_flag_icon("es"))
+        self.btn_es.setCheckable(True)
+        self.btn_es.setChecked(True)
+        self.btn_es.setFixedSize(34, 26)
+        self.btn_es.setToolTip("Español")
+        self.btn_en = QPushButton()
+        self.btn_en.setIcon(make_flag_icon("en"))
+        self.btn_en.setCheckable(True)
+        self.btn_en.setFixedSize(34, 26)
+        self.btn_en.setToolTip("English")
+        self.btn_es.clicked.connect(lambda: self.change_ui_language("es"))
+        self.btn_en.clicked.connect(lambda: self.change_ui_language("en"))
+        lang_row.addStretch(1)
+        lang_row.addWidget(self.btn_es)
+        lang_row.addWidget(self.btn_en)
+        left_layout.addLayout(lang_row)
         
         # Selección de modelo
         model_layout = QHBoxLayout()
@@ -512,30 +527,29 @@ class AudioTranscriberApp(QMainWindow):
         # Aceptar drag and drop en toda la ventana
         self.setAcceptDrops(True)
 
-    def change_ui_language(self, index):
-        """Cambia el idioma de la interfaz de usuario"""
-        lang_code = self.ui_lang_combo.itemData(index)
-        if lang_code and lang_code in TRANSLATIONS:
+    def change_ui_language(self, lang_code):
+        """Cambia el idioma de la interfaz (es/en)"""
+        if lang_code in ("es", "en") and lang_code in TRANSLATIONS:
             self.current_language = lang_code
+            self.btn_es.setChecked(lang_code == "es")
+            self.btn_en.setChecked(lang_code == "en")
             self.retranslate_ui()
 
     def retranslate_ui(self):
         """Actualiza todos los textos de la interfaz con el idioma seleccionado"""
         self.setWindowTitle(TRANSLATIONS[self.current_language]["app_title"])
         
-        # Actualizar título
-        title_label = self.findChild(QLabel)
-        if title_label:
-            title_label.setText(TRANSLATIONS[self.current_language]["audio_transcription"])
-        
-        # Actualizar etiquetas
+        # Actualizar etiquetas: mapa inverso de cualquier texto conocido a su key (funciona en ambas direcciones)
+        text_to_key = {}
+        for key in TRANSLATIONS["es"].keys():
+            for lang in TRANSLATIONS:
+                val = TRANSLATIONS[lang].get(key)
+                if val:
+                    text_to_key[val] = key
         for widget in self.findChildren(QLabel):
-            current_text = widget.text()
-            # Buscar la clave correspondiente en las traducciones
-            for key, value in TRANSLATIONS["es"].items():
-                if current_text == value:
-                    widget.setText(TRANSLATIONS[self.current_language][key])
-                    break
+            key = text_to_key.get(widget.text())
+            if key:
+                widget.setText(TRANSLATIONS[self.current_language][key])
         
         # Actualizar botones
         self.select_btn.setText(TRANSLATIONS[self.current_language]["select_audio"])
@@ -622,7 +636,6 @@ class AudioTranscriberApp(QMainWindow):
     def set_controls_enabled(self, enabled):
         self.select_btn.setEnabled(enabled)
         self.model_combo.setEnabled(enabled)
-        self.ui_lang_combo.setEnabled(enabled)
         self.trans_lang_combo.setEnabled(enabled)
         self.summarize_btn.setEnabled(enabled)
         self.copy_summary_btn.setEnabled(enabled)

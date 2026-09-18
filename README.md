@@ -1,8 +1,8 @@
-# ConvertYourFile
+# Whispea
 
 ¿Cansado de recibir audios en clase y no poder escucharlos? ¿De tener grabaciones de clases de 2 horas y querer saber si es la clase que necesitás ver ahora? ¿Siempre renegando porque las alternativas web no permiten cosas largas o te piden pagar?
 
-Yo también. Por eso armé **ConvertYourFile**: una herramienta de escritorio que transcribe y resume audio de manera **100% local**, corriendo modelos en tu propia máquina — sin subir nada a ningún server, sin APIs pagas, sin límites de duración.
+Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transcribe y resume audio de manera **100% local**, corriendo modelos en tu propia máquina — sin subir nada a ningún server, sin APIs pagas, sin límites de duración.
 
 ![Captura de la app](assets/screenshot.png)
 
@@ -11,7 +11,7 @@ Yo también. Por eso armé **ConvertYourFile**: una herramienta de escritorio qu
 - **Transcripción local con Whisper** — arrastrá o seleccioná un audio y obtené el texto, corriendo [OpenAI Whisper](https://github.com/openai/whisper) en tu PC
 - **Resumen con IA local con Ollama** — un clic y un modelo local ([Ollama](https://ollama.com)) te resume la transcripción en un párrafo
 - **Historial** — cada transcripción y su resumen quedan guardados y se pueden recargar con un clic
-- **Multiidioma** — interfaz en 10 idiomas, transcripción en 30
+- **Multiidioma** — interfaz en español e inglés (selector con banderas), transcripción en 30 idiomas
 - **Drag & drop** — arrastrá el archivo a la ventana y listo
 - **Sin límites de duración** — tu máquina, tus reglas: audios de 2 horas incluidos
 
@@ -25,8 +25,8 @@ Yo también. Por eso armé **ConvertYourFile**: una herramienta de escritorio qu
 ## Instalación
 
 ```bash
-git clone https://github.com/TU-USUARIO/Audio-to-txt.git
-cd Audio-to-txt
+git clone https://github.com/TU-USUARIO/whispea.git
+cd whispea
 
 # Crear y activar venv
 python -m venv venv
