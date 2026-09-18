@@ -361,7 +361,7 @@ class AudioTranscriberApp(QMainWindow):
     def __init__(self):
         super().__init__()
         # CAMBIO: guardar en carpeta del script
-        self.history_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ConvertYourFileHistory")
+        self.history_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ConvertYourFileHistory")
         self.current_transcription = None
         self.current_text_path = None
         self.summary_thread = None
@@ -783,7 +783,7 @@ class AudioTranscriberApp(QMainWindow):
 
 def main():
     # CAMBIO: ahora en carpeta del script
-    history_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ConvertYourFileHistory")
+    history_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ConvertYourFileHistory")
     os.makedirs(history_dir, exist_ok=True)
     
     # Iniciar aplicación
