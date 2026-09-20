@@ -8,7 +8,7 @@ Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transc
 
 ## Características
 
-- **Transcripción local con Whisper** — arrastrá o seleccioná un audio y obtené el texto, corriendo [OpenAI Whisper](https://github.com/openai/whisper) en tu PC
+- **Transcripción local con faster-whisper** — arrastrá o seleccioná un audio y obtené el texto
 - **Resumen con IA local con Ollama** — un clic y un modelo local ([Ollama](https://ollama.com)) te resume la transcripción en un párrafo
 - **Historial** — cada transcripción y su resumen quedan guardados y se pueden recargar con un clic
 - **Multiidioma** — interfaz en español e inglés (selector con banderas), transcripción en 30 idiomas
@@ -18,8 +18,7 @@ Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transc
 ## Requisitos
 
 - Python 3.10+
-- [FFmpeg](https://ffmpeg.org) en el PATH (en Windows: `winget install ffmpeg`)
-- Windows: [Microsoft VC++ Redistributable x64](https://aka.ms/vs/17/release/vc_redist.x64.exe) (necesario para PyTorch)
+- [FFmpeg](https://ffmpeg.org) en el PATH (opcional: faster-whisper decodifica mp3, ogg, flac, m4a y otros formatos nativamente con PyAV, pero FFmpeg sigue siendo útil para otros archivos de audio)
 - [Ollama](https://ollama.com) instalado + un modelo para los resúmenes (ver Instalación)
 
 ## Instalación
@@ -53,9 +52,9 @@ python main.py
 
 ## Cómo funciona
 
-- **Transcripción**: [OpenAI Whisper](https://github.com/openai/whisper) corre 100% local en CPU (el audio se convierte a WAV 16kHz con FFmpeg primero)
+- **Transcripción**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU usando PyAV para decodificar el audio directamente (mp3, ogg, flac, m4a, wma, aac, opus) sin necesidad de convertir a WAV antes
 - **Resumen**: la app le pega a un server local de [Ollama](https://ollama.com) (`http://localhost:11434`) con el modelo configurado — el texto nunca sale de tu máquina
-- **Historial**: todo queda en `history/` (queda fuera de git, son tus datos)
+- **Historial**: todo queda en `history/`
 
 ## Configuración
 
