@@ -1,14 +1,11 @@
 import os
-import tempfile
 import sys
 import shutil
 from pathlib import Path
 from datetime import datetime
 import json
 
-# Importar whisper/torch ANTES de PyQt5: en Windows, torch importado despues de PyQt
-# falla con WinError 1114 en c10.dll (regresion torch 2.9+, pytorch#166628)
-import whisper
+from faster_whisper import WhisperModel
 
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QComboBox, QPushButton, 
@@ -201,69 +198,50 @@ class TranscriptionThread(QThread):
 
     def run(self):
         try:
-            self.progress_signal.emit(10, TRANSLATIONS[self.ui_language]["checking_ffmpeg"])
-            if not self.check_ffmpeg():
-                self.error_signal.emit(TRANSLATIONS[self.ui_language]["ffmpeg_error"])
-                return
+            self.progress_signal.emit(10, TRANSLATIONS[self.ui_language]["loading_model"])
+            model = WhisperModel(
+                self.model_size,
+                device="cpu",
+                compute_type="int8",
+                cpu_threads=8,
+            )
 
-            self.progress_signal.emit(20, TRANSLATIONS[self.ui_language]["converting_audio"])
-            # Crear archivo temporal
-            temp_wav = os.path.join(tempfile.gettempdir(), f"temp_audio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav")
-            
-            if not self.convert_to_wav(self.audio_path, temp_wav):
-                self.error_signal.emit(TRANSLATIONS[self.ui_language]["conversion_error"])
-                return
+            self.progress_signal.emit(15, TRANSLATIONS[self.ui_language]["transcribing"])
 
-            self.progress_signal.emit(50, TRANSLATIONS[self.ui_language]["loading_model"])
-            model = whisper.load_model(self.model_size)
-            
-            self.progress_signal.emit(70, TRANSLATIONS[self.ui_language]["transcribing"])
-            
-            # Configurar parámetros de transcripción según el idioma seleccionado
             if self.language == "auto":
-                result = model.transcribe(temp_wav, fp16=False)
+                segments, info = model.transcribe(
+                    self.audio_path,
+                    beam_size=1,
+                    vad_filter=True,
+                    condition_on_previous_text=False,
+                )
             else:
-                result = model.transcribe(temp_wav, language=self.language, fp16=False)
-                
-            text = result["text"]
+                segments, info = model.transcribe(
+                    self.audio_path,
+                    language=self.language,
+                    beam_size=1,
+                    vad_filter=True,
+                    condition_on_previous_text=False,
+                )
+
+            text_parts = []
+            duration = getattr(info, "duration", 0) or 0
+            for segment in segments:
+                text_parts.append(segment.text)
+                if duration > 0:
+                    progress = 15 + int(75 * segment.end / duration)
+                    self.progress_signal.emit(min(progress, 90), TRANSLATIONS[self.ui_language]["transcribing"])
+
+            text = "".join(text_parts).strip()
 
             self.progress_signal.emit(90, TRANSLATIONS[self.ui_language]["saving_results"])
             # Guardar en historial
             success = self.save_to_history(self.audio_path, text, self.language)
-            
-            # Limpiar archivo temporal
-            if os.path.exists(temp_wav):
-                os.unlink(temp_wav)
 
             self.finished_signal.emit(self.audio_path, text, success)
 
         except Exception as e:
             self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {str(e)}")
-
-    def check_ffmpeg(self):
-        try:
-            result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
-            return result.returncode == 0
-        except:
-            return False
-
-    def convert_to_wav(self, input_file, output_wav):
-        try:
-            cmd = [
-                'ffmpeg',
-                '-i', input_file,
-                '-acodec', 'pcm_s16le',
-                '-ar', '16000',
-                '-ac', '1',
-                '-y',
-                output_wav
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            return result.returncode == 0
-            
-        except Exception:
-            return False
 
     def save_to_history(self, audio_path, text, language):
         try:
