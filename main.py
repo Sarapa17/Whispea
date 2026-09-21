@@ -348,6 +348,26 @@ class SummaryThread(QThread):
         except Exception as e:
             self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
 
+class ModelPreloadThread(QThread):
+    finished_signal = pyqtSignal(str, object)  # model_size, model
+    error_signal = pyqtSignal(str)
+
+    def __init__(self, model_size):
+        super().__init__()
+        self.model_size = model_size
+
+    def run(self):
+        try:
+            model = WhisperModel(
+                self.model_size,
+                device="cpu",
+                compute_type="int8",
+                cpu_threads=8,
+            )
+            self.finished_signal.emit(self.model_size, model)
+        except Exception as e:
+            self.error_signal.emit(str(e))
+
 class AudioTranscriberApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -358,8 +378,11 @@ class AudioTranscriberApp(QMainWindow):
         self.summary_thread = None
         self._prefs = load_prefs()
         self.current_language = self._prefs.get("ui_language", "es")
+        self.model_cache = {}
+        self.model_preload_thread = None
         self.initUI()
         self.load_history()
+        self._start_model_preload()
 
     def initUI(self):
         self.setWindowTitle(TRANSLATIONS[self.current_language]["app_title"])
@@ -527,6 +550,25 @@ class AudioTranscriberApp(QMainWindow):
         
         # Aceptar drag and drop en toda la ventana
         self.setAcceptDrops(True)
+
+    def _start_model_preload(self):
+        model_size = self._prefs.get("model_size", "large")
+        if model_size in self.model_cache:
+            self.status_label.setText(TRANSLATIONS[self.current_language]["ready"])
+            return
+        self.status_label.setText(TRANSLATIONS[self.current_language].get("loading_model", "Cargando modelo..."))
+        self.model_preload_thread = ModelPreloadThread(model_size)
+        self.model_preload_thread.finished_signal.connect(self._on_model_preloaded)
+        self.model_preload_thread.error_signal.connect(self._on_model_preload_error)
+        self.model_preload_thread.start()
+
+    def _on_model_preloaded(self, model_size, model):
+        self.model_cache[model_size] = model
+        if not self.progress_bar.isVisible():
+            self.status_label.setText(TRANSLATIONS[self.current_language]["ready"])
+
+    def _on_model_preload_error(self, error_msg):
+        self.status_label.setText(f"Error cargando modelo: {error_msg}")
 
     def change_ui_language(self, lang_code):
         """Cambia el idioma de la interfaz (es/en)"""
