@@ -9,9 +9,11 @@ Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transc
 ## Características
 
 - **Transcripción local con faster-whisper** — arrastrá o seleccioná un audio y obtené el texto
+- **BatchedInferencePipeline** — transcripción ~2x más rápida en CPU con `batch_size=8`
 - **Resumen con IA local con Ollama** — un clic y un modelo local ([Ollama](https://ollama.com)) te resume la transcripción en un párrafo
 - **Historial** — cada transcripción y su resumen quedan guardados y se pueden recargar con un clic
 - **Multiidioma** — interfaz en español e inglés (selector con banderas), transcripción en 30 idiomas
+- **Preferencias persistentes** — modelo Whisper, idioma de transcripción e idioma de UI se guardan en `prefs.json`
 - **Drag & drop** — arrastrá el archivo a la ventana y listo
 - **Sin límites de duración** — tu máquina, tus reglas: audios de 2 horas incluidos
 
@@ -39,6 +41,21 @@ pip install -r requirements.txt
 ollama pull qwen2.5:3b
 ```
 
+### Preferencias
+
+Copiá el ejemplo de preferencias y ajustalo a tu gusto:
+
+```bash
+cp prefs.example.json prefs.json
+```
+
+`prefs.json` guarda:
+- `model_size`: `tiny` | `base` | `small` | `medium` | `large` (default: `large`)
+- `transcription_language`: código de idioma o `auto`
+- `ui_language`: `es` | `en`
+
+El archivo está en `.gitignore` para que sea local por usuario.
+
 ## Uso
 
 ```bash
@@ -58,7 +75,16 @@ python main.py
 
 ## Configuración
 
-En `main.py`, al inicio:
+### Preferencias persistentes
+
+Las preferencias de usuario se guardan en `prefs.json`:
+- `model_size` → modelo Whisper a usar
+- `transcription_language` → idioma de transcripción o `auto`
+- `ui_language` → idioma de la interfaz `es`/`en`
+
+Ejemplo: `prefs.example.json`
+
+### Variables en `main.py`
 
 | Constante | Default | Qué hace |
 |---|---|---|
