@@ -388,6 +388,7 @@ class AudioTranscriberApp(QMainWindow):
         self.initUI()
         self.load_history()
         self._start_model_preload()
+        self._ensure_ollama_running()
 
     def initUI(self):
         self.setWindowTitle(TRANSLATIONS[self.current_language]["app_title"])
@@ -576,6 +577,17 @@ class AudioTranscriberApp(QMainWindow):
 
     def _on_model_preload_error(self, error_msg):
         self.status_label.setText(f"Error cargando modelo: {error_msg}")
+
+    def _ensure_ollama_running(self):
+        try:
+            import urllib.request
+            urllib.request.urlopen("http://localhost:11434/api/tags", timeout=1)
+        except Exception:
+            import subprocess
+            try:
+                subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
 
     def change_ui_language(self, lang_code):
         """Cambia el idioma de la interfaz (es/en)"""
