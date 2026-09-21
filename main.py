@@ -667,7 +667,8 @@ class AudioTranscriberApp(QMainWindow):
                 lang_name = WHISPER_LANGUAGES.get(lang_code, lang_code)
                 
                 item = QListWidgetItem()
-                item.setText(f"{metadata['original_name']} - {metadata['timestamp'][:10]} - {lang_name}")
+                item.setText(metadata['original_name'])
+                item.setToolTip(f"{metadata['timestamp'][:10]} - {lang_name}")
                 item.setData(Qt.UserRole, metadata)
                 self.history_list.addItem(item)
                 
