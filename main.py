@@ -558,8 +558,10 @@ class AudioTranscriberApp(QMainWindow):
 
     def _start_model_preload(self):
         model_size = self._prefs.get("model_size", "large")
+        self._start_model_preload_for_size(model_size)
+
+    def _start_model_preload_for_size(self, model_size):
         if model_size in self.model_cache:
-            self.status_label.setText(TRANSLATIONS[self.current_language]["ready"])
             return
         self.status_label.setText(TRANSLATIONS[self.current_language].get("loading_model", "Cargando modelo..."))
         self.model_preload_thread = ModelPreloadThread(model_size)
@@ -649,6 +651,9 @@ class AudioTranscriberApp(QMainWindow):
         self._prefs["transcription_language"] = language
         save_prefs(self._prefs)
 
+        if model_size not in self.model_cache:
+            self._start_model_preload_for_size(model_size)
+        
         model = self.model_cache.get(model_size)
         batched_model = None
         if model is not None:
