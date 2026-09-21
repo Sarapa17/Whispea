@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QIcon, QPainter, QPixmap, QColor
 
-import subprocess
 import urllib.request
 import urllib.error
 
@@ -75,8 +74,6 @@ def load_translations():
                 "language": "Idioma:",
                 "transcription_language": "Idioma de transcripción:",
                 "auto_detect": "Detección automática",
-                "checking_ffmpeg": "Verificando FFmpeg...",
-                "converting_audio": "Convirtiendo audio...",
                 "loading_model": "Cargando modelo Whisper...",
                 "transcribing": "Transcribiendo...",
                 "saving_results": "Guardando resultados...",
@@ -92,13 +89,8 @@ def load_translations():
                 "success": "Éxito",
                 "warning": "Advertencia",
                 "starting_transcription": "Iniciando transcripción...",
-                "ffmpeg_error": "FFmpeg no está instalado",
-                "conversion_error": "Error en la conversión del audio",
                 "unexpected_error": "Error inesperado",
                 "load_error": "No se pudo cargar el texto",
-                "convert_file": "Convertir archivo",
-                "file_conversion": "Conversión de archivo",
-                "supported_formats": "Formatos soportados",
                 "summarize_ai": "Resumir con IA",
                 "summarized_text": "Texto Resumido",
                 "copy_summary": "Copiar resumen",
@@ -123,8 +115,6 @@ def load_translations():
                 "language": "Language:",
                 "transcription_language": "Transcription language:",
                 "auto_detect": "Auto detect",
-                "checking_ffmpeg": "Checking FFmpeg...",
-                "converting_audio": "Converting audio...",
                 "loading_model": "Loading Whisper model...",
                 "transcribing": "Transcribing...",
                 "saving_results": "Saving results...",
@@ -140,13 +130,8 @@ def load_translations():
                 "success": "Success",
                 "warning": "Warning",
                 "starting_transcription": "Starting transcription...",
-                "ffmpeg_error": "FFmpeg is not installed",
-                "conversion_error": "Error converting audio",
                 "unexpected_error": "Unexpected error",
                 "load_error": "Could not load text",
-                "convert_file": "Convert file",
-                "file_conversion": "File conversion",
-                "supported_formats": "Supported formats",
                 "summarize_ai": "Summarize with AI",
                 "summarized_text": "Summarized Text",
                 "copy_summary": "Copy summary",
