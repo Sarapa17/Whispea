@@ -6,6 +6,9 @@ venv/
 # Historial local (datos del usuario)
 history/
 
+# Preferencias del usuario
+prefs.json
+
 # Notas personales
 machete.txt
 
