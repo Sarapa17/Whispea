@@ -198,24 +198,29 @@ class TranscriptionThread(QThread):
     finished_signal = pyqtSignal(str, str, bool)  # audio_path, text, success
     error_signal = pyqtSignal(str)
 
-    def __init__(self, audio_path, model_size, history_dir, language, ui_language):
+    def __init__(self, audio_path, model_size, history_dir, language, ui_language, model=None, batched_model=None):
         super().__init__()
         self.audio_path = audio_path
         self.model_size = model_size
         self.history_dir = history_dir
         self.language = language
         self.ui_language = ui_language
+        self._model = model
+        self._batched_model = batched_model
 
     def run(self):
         try:
-            self.progress_signal.emit(10, TRANSLATIONS[self.ui_language]["loading_model"])
-            model = WhisperModel(
-                self.model_size,
-                device="cpu",
-                compute_type="int8",
-                cpu_threads=8,
-            )
-            batched_model = BatchedInferencePipeline(model=model)
+            model = self._model
+            batched_model = self._batched_model
+            if model is None:
+                self.progress_signal.emit(10, TRANSLATIONS[self.ui_language]["loading_model"])
+                model = WhisperModel(
+                    self.model_size,
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=8,
+                )
+                batched_model = BatchedInferencePipeline(model=model)
 
             self.progress_signal.emit(15, TRANSLATIONS[self.ui_language]["transcribing"])
 
@@ -643,14 +648,18 @@ class AudioTranscriberApp(QMainWindow):
         self._prefs["model_size"] = model_size
         self._prefs["transcription_language"] = language
         save_prefs(self._prefs)
+
+        model = self.model_cache.get(model_size)
+        batched_model = None
+        if model is not None:
+            batched_model = BatchedInferencePipeline(model=model)
         
-        self.set_controls_enabled(False)
         self.set_controls_enabled(False)
         self.progress_bar.setVisible(True)
         self.status_label.setText(TRANSLATIONS[self.current_language]["starting_transcription"])
         
         # Iniciar hilo de transcripción
-        self.transcription_thread = TranscriptionThread(file_path, model_size, self.history_dir, language, self.current_language)
+        self.transcription_thread = TranscriptionThread(file_path, model_size, self.history_dir, language, self.current_language, model=model, batched_model=batched_model)
         self.transcription_thread.progress_signal.connect(self.update_progress)
         self.transcription_thread.finished_signal.connect(self.transcription_finished)
         self.transcription_thread.error_signal.connect(self.transcription_error)
