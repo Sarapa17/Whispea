@@ -190,20 +190,23 @@ class TranscriptionThread(QThread):
                 compute_type="int8",
                 cpu_threads=8,
             )
+            batched_model = BatchedInferencePipeline(model=model)
 
             self.progress_signal.emit(15, TRANSLATIONS[self.ui_language]["transcribing"])
 
             if self.language == "auto":
-                segments, info = model.transcribe(
+                segments, info = batched_model.transcribe(
                     self.audio_path,
+                    batch_size=8,
                     beam_size=1,
                     vad_filter=True,
                     condition_on_previous_text=False,
                 )
             else:
-                segments, info = model.transcribe(
+                segments, info = batched_model.transcribe(
                     self.audio_path,
                     language=self.language,
+                    batch_size=8,
                     beam_size=1,
                     vad_filter=True,
                     condition_on_previous_text=False,
