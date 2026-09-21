@@ -572,7 +572,7 @@ class AudioTranscriberApp(QMainWindow):
     def _on_model_preloaded(self, model_size, model):
         self.model_cache[model_size] = model
         if not self.progress_bar.isVisible():
-            self.status_label.setText(TRANSLATIONS[self.current_language]["ready"])
+            self.status_label.setText(f"Modelo {model_size} listo - {TRANSLATIONS[self.current_language]['ready']}")
 
     def _on_model_preload_error(self, error_msg):
         self.status_label.setText(f"Error cargando modelo: {error_msg}")
