@@ -619,6 +619,17 @@ class AudioTranscriberApp(QMainWindow):
             event.acceptProposedAction()
 
     def closeEvent(self, event):
+        threads = []
+        if self.model_preload_thread and self.model_preload_thread.isRunning():
+            threads.append(self.model_preload_thread)
+        if hasattr(self, 'transcription_thread') and self.transcription_thread and self.transcription_thread.isRunning():
+            threads.append(self.transcription_thread)
+        if self.summary_thread and self.summary_thread.isRunning():
+            threads.append(self.summary_thread)
+        for t in threads:
+            t.quit()
+            t.wait(3000)
+
         for model in self.model_cache.values():
             try:
                 del model
