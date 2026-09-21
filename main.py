@@ -31,6 +31,31 @@ PROMPT_TEMPLATE = (
 )
 MAX_SUMMARY_INPUT_CHARS = 25000
 
+PREFS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prefs.json")
+
+def load_prefs():
+    defaults = {
+        "model_size": "large",
+        "transcription_language": "auto",
+        "ui_language": "es"
+    }
+    try:
+        with open(PREFS_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        defaults.update(data)
+    except FileNotFoundError:
+        pass
+    except Exception:
+        pass
+    return defaults
+
+def save_prefs(prefs):
+    try:
+        with open(PREFS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(prefs, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
 
 def make_flag_icon(country):
     """Dibuja la bandera de España o USA en un QPixmap (los emoji de bandera no renderizan en Windows)"""
@@ -331,7 +356,8 @@ class AudioTranscriberApp(QMainWindow):
         self.current_transcription = None
         self.current_text_path = None
         self.summary_thread = None
-        self.current_language = "es"  # Idioma por defecto
+        self._prefs = load_prefs()
+        self.current_language = self._prefs.get("ui_language", "es")
         self.initUI()
         self.load_history()
 
@@ -383,7 +409,11 @@ class AudioTranscriberApp(QMainWindow):
         model_label = QLabel(TRANSLATIONS[self.current_language]["whisper_model"])
         self.model_combo = QComboBox()
         self.model_combo.addItems(["tiny", "base", "small", "medium", "large"])
-        self.model_combo.setCurrentText("base")
+        saved_model = self._prefs.get("model_size", "large")
+        if saved_model in ["tiny","base","small","medium","large"]:
+            self.model_combo.setCurrentText(saved_model)
+        else:
+            self.model_combo.setCurrentText("large")
         model_layout.addWidget(model_label)
         model_layout.addWidget(self.model_combo)
         left_layout.addLayout(model_layout)
@@ -397,7 +427,12 @@ class AudioTranscriberApp(QMainWindow):
         for code, name in WHISPER_LANGUAGES.items():
             self.trans_lang_combo.addItem(name, code)
             
-        self.trans_lang_combo.setCurrentIndex(0)  # Auto-detect por defecto
+        saved_lang = self._prefs.get("transcription_language", "auto")
+        idx = self.trans_lang_combo.findData(saved_lang)
+        if idx >= 0:
+            self.trans_lang_combo.setCurrentIndex(idx)
+        else:
+            self.trans_lang_combo.setCurrentIndex(0)  # Auto-detect por defecto
         trans_lang_layout.addWidget(trans_lang_label)
         trans_lang_layout.addWidget(self.trans_lang_combo)
         left_layout.addLayout(trans_lang_layout)
@@ -500,6 +535,8 @@ class AudioTranscriberApp(QMainWindow):
             self.btn_es.setChecked(lang_code == "es")
             self.btn_en.setChecked(lang_code == "en")
             self.retranslate_ui()
+            self._prefs["ui_language"] = lang_code
+            save_prefs(self._prefs)
 
     def retranslate_ui(self):
         """Actualiza todos los textos de la interfaz con el idioma seleccionado"""
@@ -561,7 +598,11 @@ class AudioTranscriberApp(QMainWindow):
         model_size = self.model_combo.currentText()
         language = self.trans_lang_combo.currentData()
         
-        # Deshabilitar controles durante la transcripción
+        self._prefs["model_size"] = model_size
+        self._prefs["transcription_language"] = language
+        save_prefs(self._prefs)
+        
+        self.set_controls_enabled(False)
         self.set_controls_enabled(False)
         self.progress_bar.setVisible(True)
         self.status_label.setText(TRANSLATIONS[self.current_language]["starting_transcription"])
