@@ -618,6 +618,15 @@ class AudioTranscriberApp(QMainWindow):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
+    def closeEvent(self, event):
+        for model in self.model_cache.values():
+            try:
+                del model
+            except Exception:
+                pass
+        self.model_cache.clear()
+        super().closeEvent(event)
+
     def dropEvent(self, event: QDropEvent):
         urls = event.mimeData().urls()
         if urls:
