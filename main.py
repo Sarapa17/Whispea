@@ -308,6 +308,7 @@ class TranscriptionThread(QThread):
 class SummaryThread(QThread):
     """Hilo para generar el resumen con Ollama en segundo plano"""
     progress_signal = pyqtSignal(int, str)
+    chunk_signal = pyqtSignal(str)  
     finished_signal = pyqtSignal(str, str, bool)  # text_path, summary, success
     error_signal = pyqtSignal(str)
 
