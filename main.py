@@ -194,7 +194,6 @@ WHISPER_LANGUAGES = load_whisper_languages()
 
 class TranscriptionThread(QThread):
     """Hilo para realizar la transcripción en segundo plano"""
-    progress_signal = pyqtSignal(int, str)
     finished_signal = pyqtSignal(str, str, bool)  # audio_path, text, success
     error_signal = pyqtSignal(str)
 
@@ -847,7 +846,6 @@ class AudioTranscriberApp(QMainWindow):
         self.status_label.setText(TRANSLATIONS[self.current_language]["summarizing_ai"])
 
         self.summary_thread = SummaryThread(text, self.current_text_path)
-        self.summary_thread.progress_signal.connect(self.update_progress)
         self.summary_thread.chunk_signal.connect(self.append_summary_chunk)
         self.summary_thread.finished_signal.connect(self.summary_finished)
         self.summary_thread.error_signal.connect(self.summary_error)
