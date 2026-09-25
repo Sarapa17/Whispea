@@ -318,41 +318,60 @@ class SummaryThread(QThread):
         self.text_path = text_path
 
     def run(self):
+    try:
         try:
-            # Verificar que Ollama este disponible
-            try:
-                urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
-            except (urllib.error.URLError, TimeoutError, ConnectionError):
-                self.error_signal.emit(TRANSLATIONS["es"]["ollama_error"])
-                return
+            urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            self.error_signal.emit(TRANSLATIONS["es"]["ollama_error"])
+            return
 
-            try:
-                body = json.dumps({
-                    "model": OLLAMA_MODEL,
-                    "prompt": PROMPT_TEMPLATE.format(texto=self.text),
-                    "stream": False,
-                    "options": {"num_ctx": 8192, "temperature": 0.2, "top_p": 0.9}
-                }, ensure_ascii=False).encode("utf-8")
-                req = urllib.request.Request(
-                    "http://localhost:11434/api/generate",
-                    data=body,
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=300) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as e:
-                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
-                return
+        try:
+            body = json.dumps({
+                "model": OLLAMA_MODEL,
+                "prompt": PROMPT_TEMPLATE.format(texto=self.text),
+                "stream": True,
+                "options": {"num_ctx": 8192, "temperature": 0.2, "top_p": 0.9}
+            }, ensure_ascii=False).encode("utf-8")
+            req = urllib.request.Request(
+                "http://localhost:11434/api/generate",
+                data=body,
+                headers={"Content-Type": "application/json"}
+            )
 
-            # Ollama puede responder 200 con campo "error" (ej. modelo no encontrado)
-            if "error" in data:
-                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {data['error']}")
-                return
+            full_summary = []
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                for raw_line in resp:
+                    line = raw_line.decode("utf-8").strip()
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
 
-            resumen = data.get("response", "")
-            self.finished_signal.emit(self.text_path, resumen, True)
-        except Exception as e:
+                    if "error" in chunk:
+                        self.error_signal.emit(
+                            f"{TRANSLATIONS['es']['summary_error']}: {chunk['error']}"
+                        )
+                        return
+
+                    piece = chunk.get("response", "")
+                    if piece:
+                        full_summary.append(piece)
+                        self.chunk_signal.emit(piece)
+
+                    if chunk.get("done"):
+                        break
+
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
             self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
+            return
+
+        resumen = "".join(full_summary)
+        self.finished_signal.emit(self.text_path, resumen, True)
+
+    except Exception as e:
+        self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
 
 class ModelPreloadThread(QThread):
     finished_signal = pyqtSignal(str, object)  # model_size, model
