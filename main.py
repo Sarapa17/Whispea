@@ -318,60 +318,60 @@ class SummaryThread(QThread):
         self.text_path = text_path
 
     def run(self):
-    try:
         try:
-            urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
-            self.error_signal.emit(TRANSLATIONS["es"]["ollama_error"])
-            return
+            try:
+                urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
+            except (urllib.error.URLError, TimeoutError, ConnectionError):
+                self.error_signal.emit(TRANSLATIONS["es"]["ollama_error"])
+                return
 
-        try:
-            body = json.dumps({
-                "model": OLLAMA_MODEL,
-                "prompt": PROMPT_TEMPLATE.format(texto=self.text),
-                "stream": True,
-                "options": {"num_ctx": 8192, "temperature": 0.2, "top_p": 0.9}
-            }, ensure_ascii=False).encode("utf-8")
-            req = urllib.request.Request(
-                "http://localhost:11434/api/generate",
-                data=body,
-                headers={"Content-Type": "application/json"}
-            )
+            try:
+                body = json.dumps({
+                    "model": OLLAMA_MODEL,
+                    "prompt": PROMPT_TEMPLATE.format(texto=self.text),
+                    "stream": True,
+                    "options": {"num_ctx": 8192, "temperature": 0.2, "top_p": 0.9}
+                }, ensure_ascii=False).encode("utf-8")
+                req = urllib.request.Request(
+                    "http://localhost:11434/api/generate",
+                    data=body,
+                    headers={"Content-Type": "application/json"}
+                )
 
-            full_summary = []
-            with urllib.request.urlopen(req, timeout=300) as resp:
-                for raw_line in resp:
-                    line = raw_line.decode("utf-8").strip()
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
+                full_summary = []
+                with urllib.request.urlopen(req, timeout=300) as resp:
+                    for raw_line in resp:
+                        line = raw_line.decode("utf-8").strip()
+                        if not line:
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
 
-                    if "error" in chunk:
-                        self.error_signal.emit(
-                            f"{TRANSLATIONS['es']['summary_error']}: {chunk['error']}"
-                        )
-                        return
+                        if "error" in chunk:
+                            self.error_signal.emit(
+                                f"{TRANSLATIONS['es']['summary_error']}: {chunk['error']}"
+                            )
+                            return
 
-                    piece = chunk.get("response", "")
-                    if piece:
-                        full_summary.append(piece)
-                        self.chunk_signal.emit(piece)
+                        piece = chunk.get("response", "")
+                        if piece:
+                            full_summary.append(piece)
+                            self.chunk_signal.emit(piece)
 
-                    if chunk.get("done"):
-                        break
+                        if chunk.get("done"):
+                            break
 
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
+                return
+
+            resumen = "".join(full_summary)
+            self.finished_signal.emit(self.text_path, resumen, True)
+
+        except Exception as e:
             self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
-            return
-
-        resumen = "".join(full_summary)
-        self.finished_signal.emit(self.text_path, resumen, True)
-
-    except Exception as e:
-        self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
 
 class ModelPreloadThread(QThread):
     finished_signal = pyqtSignal(str, object)  # model_size, model
@@ -841,15 +841,23 @@ class AudioTranscriberApp(QMainWindow):
             return
 
         self.set_controls_enabled(False)
+        self.summary_edit.clear()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setVisible(True)
         self.status_label.setText(TRANSLATIONS[self.current_language]["summarizing_ai"])
 
         self.summary_thread = SummaryThread(text, self.current_text_path)
         self.summary_thread.progress_signal.connect(self.update_progress)
+        self.summary_thread.chunk_signal.connect(self.append_summary_chunk)
         self.summary_thread.finished_signal.connect(self.summary_finished)
         self.summary_thread.error_signal.connect(self.summary_error)
         self.summary_thread.start()
+
+    def append_summary_chunk(self, chunk):
+        """Inserta un fragmento del resumen en el QTextEdit a medida que llega."""
+        self.summary_edit.moveCursor(self.summary_edit.textCursor().End)
+        self.summary_edit.insertPlainText(chunk)
+        self.summary_edit.moveCursor(self.summary_edit.textCursor().End)
 
     def summary_finished(self, text_path, summary, success):
         self.progress_bar.setVisible(False)
