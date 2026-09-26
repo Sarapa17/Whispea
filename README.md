@@ -73,6 +73,12 @@ python main.py
 - **Resumen**: la app le pega a un server local de [Ollama](https://ollama.com) (`http://localhost:11434`) con el modelo configurado — el texto nunca sale de tu máquina
 - **Historial**: todo queda en `history/`
 
+## Estructura del proyecto
+
+- `main.py` → ventana principal (`AudioTranscriberApp`) y punto de entrada
+- `config.py` → configuración, preferencias (`prefs.json`) e internacionalización (`TRANSLATIONS`, `WHISPER_LANGUAGES`)
+- `core.py` → hilos de trabajo (`TranscriptionThread`, `SummaryThread`, `ModelPreloadThread`)
+
 ## Configuración
 
 ### Preferencias persistentes
