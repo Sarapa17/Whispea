@@ -1,33 +1,26 @@
+"""Ventana principal y punto de entrada de Whispea."""
 import os
 import sys
-import shutil
-from pathlib import Path
-from datetime import datetime
 import json
+from pathlib import Path
 
-from faster_whisper import WhisperModel, BatchedInferencePipeline
-
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QLabel, QComboBox, QPushButton, 
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
+                             QHBoxLayout, QLabel, QComboBox, QPushButton,
                              QTextEdit, QListWidget, QFileDialog, QMessageBox,
                              QProgressBar, QSplitter, QListWidgetItem)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QIcon, QPainter, QPixmap, QColor
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent
 
-import urllib.request
-import urllib.error
+from faster_whisper import BatchedInferencePipeline
 
 from config import (
     OLLAMA_MODEL,
-    PROMPT_TEMPLATE,
-    MAX_SUMMARY_INPUT_CHARS,
     TRANSLATIONS,
     WHISPER_LANGUAGES,
     load_prefs,
     save_prefs,
     make_flag_icon,
 )
-
 from core import (
     TranscriptionThread,
     SummaryThread,
