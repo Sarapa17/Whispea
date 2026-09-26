@@ -84,7 +84,7 @@ Las preferencias de usuario se guardan en `prefs.json`:
 
 Ejemplo: `prefs.example.json`
 
-### Variables en `main.py`
+### Variables en `config.py`
 
 | Constante | Default | Qué hace |
 |---|---|---|
