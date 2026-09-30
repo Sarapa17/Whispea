@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QComboBox, QPushButton,
                              QTextEdit, QListWidget, QFileDialog, QMessageBox,
                              QProgressBar, QSplitter, QListWidgetItem)
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QPalette
 
 from faster_whisper import BatchedInferencePipeline
@@ -93,16 +93,27 @@ class AudioTranscriberApp(QMainWindow):
         
         # Selector de idioma con banderas (discreto, junto al título)
         lang_row = QHBoxLayout()
+        lang_btn_style = (
+            "QPushButton { border: 1px solid transparent; border-radius: 6px;"
+            " padding: 2px; background: transparent; }"
+            "QPushButton:hover { border: 1px solid #8e8e93; }"
+            "QPushButton:checked { border: 1px solid #0a84ff;"
+            " background: rgba(10, 132, 255, 0.15); }"
+        )
         self.btn_es = QPushButton()
         self.btn_es.setIcon(make_flag_icon("es"))
         self.btn_es.setCheckable(True)
         self.btn_es.setChecked(True)
-        self.btn_es.setFixedSize(34, 26)
+        self.btn_es.setFixedSize(44, 30)
+        self.btn_es.setIconSize(QSize(36, 24))
+        self.btn_es.setStyleSheet(lang_btn_style)
         self.btn_es.setToolTip("Español")
         self.btn_en = QPushButton()
         self.btn_en.setIcon(make_flag_icon("en"))
         self.btn_en.setCheckable(True)
-        self.btn_en.setFixedSize(34, 26)
+        self.btn_en.setFixedSize(44, 30)
+        self.btn_en.setIconSize(QSize(36, 24))
+        self.btn_en.setStyleSheet(lang_btn_style)
         self.btn_en.setToolTip("English")
         self.btn_es.clicked.connect(lambda: self.change_ui_language("es"))
         self.btn_en.clicked.connect(lambda: self.change_ui_language("en"))
