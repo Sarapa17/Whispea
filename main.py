@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QComboBox, QPushButton,
                              QTextEdit, QListWidget, QFileDialog, QMessageBox,
                              QProgressBar, QSplitter, QListWidgetItem)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QPalette
 
 from faster_whisper import BatchedInferencePipeline
@@ -291,6 +291,15 @@ class AudioTranscriberApp(QMainWindow):
         # Actualizar estado
         if not self.progress_bar.isVisible():
             self.status_label.setText(TRANSLATIONS[self.current_language]["ready"])
+
+        # Re-aplicar estilo del drop-area (el texto cambia y el tema puede haber cambiado)
+        if hasattr(self, "drop_label"):
+            self.drop_label.setStyleSheet(self._drop_stylesheet())
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.PaletteChange and hasattr(self, "drop_label"):
+            self.drop_label.setStyleSheet(self._drop_stylesheet())
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
