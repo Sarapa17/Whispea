@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QTextEdit, QListWidget, QFileDialog, QMessageBox,
                              QProgressBar, QSplitter, QListWidgetItem)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent
+from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QPalette
 
 from faster_whisper import BatchedInferencePipeline
 
@@ -43,6 +43,25 @@ class AudioTranscriberApp(QMainWindow):
         self.load_history()
         self._start_model_preload()
         self._ensure_ollama_running()
+
+    def _is_dark_theme(self):
+        c = QApplication.palette().color(QPalette.Window)
+        return (0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()) < 128
+
+    def _drop_stylesheet(self):
+        if self._is_dark_theme():
+            bg, border, text = "#3a3a3c", "#8e8e93", "#f5f5f7"
+        else:
+            bg, border, text = "#f0f0f0", "#aaa", "#333333"
+        return (
+            "QLabel {"
+            f" border: 2px dashed {border};"
+            " border-radius: 10px;"
+            " padding: 20px;"
+            f" background-color: {bg};"
+            f" color: {text};"
+            " }"
+        )
 
     def initUI(self):
         self.setWindowTitle(TRANSLATIONS[self.current_language]["app_title"])
@@ -128,14 +147,7 @@ class AudioTranscriberApp(QMainWindow):
         # Área de drop
         self.drop_label = QLabel(TRANSLATIONS[self.current_language]["drag_audio"])
         self.drop_label.setAlignment(Qt.AlignCenter)
-        self.drop_label.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #aaa;
-                border-radius: 10px;
-                padding: 20px;
-                background-color: #f0f0f0;
-            }
-        """)
+        self.drop_label.setStyleSheet(self._drop_stylesheet())
         self.drop_label.setAcceptDrops(True)
         self.drop_label.dragEnterEvent = self.dragEnterEvent
         self.drop_label.dropEvent = self.dropEvent
