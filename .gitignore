@@ -15,3 +15,6 @@ machete.txt
 # Artefactos de herramientas locales
 .omo/
 .codegraph/
+
+# macOS
+.DS_Store
