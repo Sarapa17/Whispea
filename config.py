@@ -2,8 +2,8 @@
 import os
 import json
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPainter, QPixmap, QColor
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QIcon, QPainter, QPainterPath, QPixmap, QColor
 
 
 PREFS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prefs.json")
@@ -48,22 +48,44 @@ def save_prefs(prefs):
         pass
 
 
-def make_flag_icon(country):
-    """Dibuja la bandera de España o USA en un QPixmap (los emoji de bandera no renderizan en Windows)."""
-    pm = QPixmap(24, 16)
+def make_flag_icon(country, w=48, h=32):
+    """Dibuja la bandera de España o USA en alta resolución (los emoji de bandera no renderizan en Windows)."""
+    scale = 3
+    pm = QPixmap(w * scale, h * scale)
+    pm.setDevicePixelRatio(scale)
     pm.fill(Qt.transparent)
     p = QPainter(pm)
-    if country == "es":
-        p.fillRect(0, 0, 24, 4, Qt.red)
-        p.fillRect(0, 4, 24, 8, QColor(241, 191, 0))
-        p.fillRect(0, 12, 24, 4, Qt.red)
-    else:
-        stripe_h = 16 // 13
-        for i in range(13):
-            if i % 2 == 0:
-                p.fillRect(0, i * stripe_h, 24, stripe_h, Qt.red)
-        p.fillRect(0, 0, 10, 8, QColor(60, 59, 110))
-    p.end()
+    try:
+        p.setRenderHint(QPainter.Antialiasing)
+        path = QPainterPath()
+        path.addRoundedRect(0.5, 0.5, w - 1, h - 1, 5.0, 5.0)
+        p.setClipPath(path)
+        if country == "es":
+            p.fillRect(0, 0, w, h, QColor(170, 21, 27))
+            p.fillRect(QRectF(0, h / 4, w, h / 2), QColor(241, 191, 0))
+        else:
+            stripe_h = h / 13.0
+            p.fillRect(0, 0, w, h, Qt.white)
+            for i in range(13):
+                if i % 2 == 0:
+                    p.fillRect(QRectF(0, i * stripe_h, w, stripe_h + 0.5), QColor(179, 25, 66))
+            canton_w = w * 0.42
+            canton_h = stripe_h * 7
+            p.fillRect(QRectF(0, 0, canton_w, canton_h), QColor(10, 49, 97))
+            p.setPen(Qt.NoPen)
+            p.setBrush(Qt.white)
+            cols, rows = 6, 4
+            for r in range(rows):
+                for c_ in range(cols):
+                    x = canton_w * (c_ + 0.75) / (cols + 0.5)
+                    y = canton_h * (r + 0.75) / (rows + 0.5)
+                    d = min(canton_w / (cols + 0.5), canton_h / (rows + 0.5)) * 0.32
+                    p.drawEllipse(QRectF(x - d / 2, y - d / 2, d, d))
+        p.setClipping(False)
+        p.setPen(QColor(0, 0, 0, 70))
+        p.drawPath(path)
+    finally:
+        p.end()
     return QIcon(pm)
 
 
