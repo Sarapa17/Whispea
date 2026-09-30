@@ -7,8 +7,9 @@ import urllib.error
 from pathlib import Path
 from datetime import datetime
 
-from PyQt5.QtCore import QThread, pyqtSignal
 from faster_whisper import WhisperModel, BatchedInferencePipeline
+
+from PyQt5.QtCore import QThread, pyqtSignal
 
 from config import (
     OLLAMA_MODEL,
