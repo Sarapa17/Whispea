@@ -48,14 +48,19 @@ class AudioTranscriberApp(QMainWindow):
         c = QApplication.palette().color(QPalette.Window)
         return (0.299 * c.red() + 0.587 * c.green() + 0.114 * c.blue()) < 128
 
-    def _drop_stylesheet(self):
+    def _drop_stylesheet(self, active=False):
         if self._is_dark_theme():
             bg, border, text = "#3a3a3c", "#8e8e93", "#f5f5f7"
         else:
             bg, border, text = "#f0f0f0", "#aaa", "#333333"
+        if active:
+            border = "#0a84ff"
+            border_style = "solid"
+        else:
+            border_style = "dashed"
         return (
             "QLabel {"
-            f" border: 2px dashed {border};"
+            f" border: 2px {border_style} {border};"
             " border-radius: 10px;"
             " padding: 20px;"
             f" background-color: {bg};"
@@ -149,6 +154,7 @@ class AudioTranscriberApp(QMainWindow):
         self.drop_label.setAlignment(Qt.AlignCenter)
         self.drop_label.setStyleSheet(self._drop_stylesheet())
         self.drop_label.setAcceptDrops(True)
+        self.drop_label.installEventFilter(self)
         self.drop_label.dragEnterEvent = self.dragEnterEvent
         self.drop_label.dropEvent = self.dropEvent
         left_layout.addWidget(self.drop_label)
@@ -300,6 +306,21 @@ class AudioTranscriberApp(QMainWindow):
         super().changeEvent(event)
         if event.type() == QEvent.PaletteChange and hasattr(self, "drop_label"):
             self.drop_label.setStyleSheet(self._drop_stylesheet())
+
+    def eventFilter(self, obj, event):
+        if obj is getattr(self, "drop_label", None):
+            t = event.type()
+            if t == QEvent.DragEnter:
+                if event.mimeData().hasUrls():
+                    self.drop_label.setStyleSheet(self._drop_stylesheet(active=True))
+                return False
+            if t == QEvent.DragLeave:
+                self.drop_label.setStyleSheet(self._drop_stylesheet())
+                return False
+            if t == QEvent.Drop:
+                self.drop_label.setStyleSheet(self._drop_stylesheet())
+                return False
+        return super().eventFilter(obj, event)
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
