@@ -126,9 +126,9 @@ class AudioTranscriberApp(QMainWindow):
         left_layout.addWidget(self.select_btn)
         
         # Área de drop
-        drop_label = QLabel(TRANSLATIONS[self.current_language]["drag_audio"])
-        drop_label.setAlignment(Qt.AlignCenter)
-        drop_label.setStyleSheet("""
+        self.drop_label = QLabel(TRANSLATIONS[self.current_language]["drag_audio"])
+        self.drop_label.setAlignment(Qt.AlignCenter)
+        self.drop_label.setStyleSheet("""
             QLabel {
                 border: 2px dashed #aaa;
                 border-radius: 10px;
@@ -136,10 +136,10 @@ class AudioTranscriberApp(QMainWindow):
                 background-color: #f0f0f0;
             }
         """)
-        drop_label.setAcceptDrops(True)
-        drop_label.dragEnterEvent = self.dragEnterEvent
-        drop_label.dropEvent = self.dropEvent
-        left_layout.addWidget(drop_label)
+        self.drop_label.setAcceptDrops(True)
+        self.drop_label.dragEnterEvent = self.dragEnterEvent
+        self.drop_label.dropEvent = self.dropEvent
+        left_layout.addWidget(self.drop_label)
         
         # Barra de progreso
         self.progress_bar = QProgressBar()
