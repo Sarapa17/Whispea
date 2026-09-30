@@ -4,14 +4,17 @@ import sys
 import json
 from pathlib import Path
 
+# NO REORDENAR: faster_whisper va antes que PyQt5 para que ctranslate2
+# ligue el MSVCP140 del sistema. Si PyQt5 carga primero, su MSVCP140
+# empaquetado gana y el init nativo del modelo muere con AV.
+from faster_whisper import BatchedInferencePipeline
+
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QComboBox, QPushButton,
                              QTextEdit, QListWidget, QFileDialog, QMessageBox,
                              QProgressBar, QSplitter, QListWidgetItem)
 from PyQt5.QtCore import Qt, QEvent, QSize
 from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QPalette
-
-from faster_whisper import BatchedInferencePipeline
 
 from config import (
     OLLAMA_MODEL,
