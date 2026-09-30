@@ -61,11 +61,11 @@ def make_flag_icon(country, w=48, h=32):
         path.addRoundedRect(0.5, 0.5, w - 1, h - 1, 5.0, 5.0)
         p.setClipPath(path)
         if country == "es":
-            p.fillRect(0, 0, w, h, QColor(170, 21, 27))
+            p.fillRect(QRectF(0, 0, w, h), QColor(170, 21, 27))
             p.fillRect(QRectF(0, h / 4, w, h / 2), QColor(241, 191, 0))
         else:
             stripe_h = h / 13.0
-            p.fillRect(0, 0, w, h, Qt.white)
+            p.fillRect(QRectF(0, 0, w, h), Qt.white)
             for i in range(13):
                 if i % 2 == 0:
                     p.fillRect(QRectF(0, i * stripe_h, w, stripe_h + 0.5), QColor(179, 25, 66))
@@ -82,6 +82,7 @@ def make_flag_icon(country, w=48, h=32):
                     d = min(canton_w / (cols + 0.5), canton_h / (rows + 0.5)) * 0.32
                     p.drawEllipse(QRectF(x - d / 2, y - d / 2, d, d))
         p.setClipping(False)
+        p.setBrush(Qt.NoBrush)
         p.setPen(QColor(0, 0, 0, 70))
         p.drawPath(path)
     finally:
