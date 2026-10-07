@@ -148,7 +148,7 @@ class AudioTranscriberApp(QMainWindow):
         for code, name in WHISPER_LANGUAGES.items():
             self.trans_lang_combo.addItem(name, code)
             
-        saved_lang = self._prefs.get("transcription_language", "auto")
+        saved_lang = self._prefs.get("transcription_language", "es")
         idx = self.trans_lang_combo.findData(saved_lang)
         if idx >= 0:
             self.trans_lang_combo.setCurrentIndex(idx)

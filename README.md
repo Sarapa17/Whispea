@@ -51,7 +51,7 @@ cp prefs.example.json prefs.json
 
 `prefs.json` guarda:
 - `model_size`: `tiny` | `base` | `small` | `medium` | `large` | `large-v3-turbo` (default: `large-v3-turbo`)
-- `transcription_language`: código de idioma o `auto`
+- `transcription_language`: código de idioma o `auto` (default: `es`)
 - `ui_language`: `es` | `en`
 
 El archivo está en `.gitignore` para que sea local por usuario.
