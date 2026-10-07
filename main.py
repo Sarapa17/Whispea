@@ -129,12 +129,12 @@ class AudioTranscriberApp(QMainWindow):
         model_layout = QHBoxLayout()
         model_label = QLabel(TRANSLATIONS[self.current_language]["whisper_model"])
         self.model_combo = QComboBox()
-        self.model_combo.addItems(["tiny", "base", "small", "medium", "distil-large-v3"])
-        saved_model = self._prefs.get("model_size", "distil-large-v3")
-        if saved_model in ["tiny","base","small","medium","distil-large-v3"]:
+        self.model_combo.addItems(["tiny", "base", "small", "medium", "large"])
+        saved_model = self._prefs.get("model_size", "large")
+        if saved_model in ["tiny","base","small","medium","large"]:
             self.model_combo.setCurrentText(saved_model)
         else:
-            self.model_combo.setCurrentText("distil-large-v3")
+            self.model_combo.setCurrentText("large")
         model_layout.addWidget(model_label)
         model_layout.addWidget(self.model_combo)
         left_layout.addLayout(model_layout)
@@ -244,7 +244,7 @@ class AudioTranscriberApp(QMainWindow):
         self.setAcceptDrops(True)
 
     def _start_model_preload(self):
-        model_size = self._prefs.get("model_size", "distil-large-v3")
+        model_size = self._prefs.get("model_size", "large")
         self._start_model_preload_for_size(model_size)
 
     def _start_model_preload_for_size(self, model_size):

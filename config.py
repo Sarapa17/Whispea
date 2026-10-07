@@ -25,7 +25,7 @@ MAX_SUMMARY_INPUT_CHARS = 25000
 
 def load_prefs():
     defaults = {
-        "model_size": "distil-large-v3",
+        "model_size": "large",
         "transcription_language": "auto",
         "ui_language": "es",
     }
@@ -33,8 +33,6 @@ def load_prefs():
         with open(PREFS_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
         defaults.update(data)
-        if defaults.get("model_size") == "large":
-            defaults["model_size"] = "distil-large-v3"
     except FileNotFoundError:
         pass
     except Exception:
