@@ -2,6 +2,8 @@
 import os
 import json
 import shutil
+import subprocess
+import tempfile
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -36,6 +38,7 @@ class TranscriptionThread(QThread):
         self._batched_model = batched_model
 
     def run(self):
+        tmp_wav = None
         try:
             model = self._model
             batched_model = self._batched_model
@@ -49,11 +52,18 @@ class TranscriptionThread(QThread):
                 )
                 batched_model = BatchedInferencePipeline(model=model)
 
+            # Pre-conversión a 16kHz mono: Whisper trabaja a 16kHz, así
+            # evitamos que decodifique de más (ej: MP3 48kHz estéreo).
+            # Si ffmpeg falta o falla, se usa el archivo original.
+            self.progress_signal.emit(12, TRANSLATIONS[self.ui_language]["loading_model"])
+            tmp_wav = self._convert_to_16k_mono(self.audio_path)
+            transcribe_path = tmp_wav or self.audio_path
+
             self.progress_signal.emit(15, TRANSLATIONS[self.ui_language]["transcribing"])
 
             if self.language == "auto":
                 segments, info = batched_model.transcribe(
-                    self.audio_path,
+                    transcribe_path,
                     batch_size=8,
                     beam_size=1,
                     vad_filter=True,
@@ -61,7 +71,7 @@ class TranscriptionThread(QThread):
                 )
             else:
                 segments, info = batched_model.transcribe(
-                    self.audio_path,
+                    transcribe_path,
                     language=self.language,
                     batch_size=8,
                     beam_size=1,
@@ -80,13 +90,48 @@ class TranscriptionThread(QThread):
             text = "".join(text_parts).strip()
 
             self.progress_signal.emit(90, TRANSLATIONS[self.ui_language]["saving_results"])
-            # Guardar en historial
+            # Guardar en historial (el audio original, no el temporal)
             success = self.save_to_history(self.audio_path, text, self.language)
 
             self.finished_signal.emit(self.audio_path, text, success)
 
         except Exception as e:
             self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {str(e)}")
+        finally:
+            if tmp_wav:
+                try:
+                    os.remove(tmp_wav)
+                except OSError:
+                    pass
+
+    @staticmethod
+    def _convert_to_16k_mono(src_path):
+        """Convierte el audio a WAV 16kHz mono en un archivo temporal.
+
+        Devuelve la ruta del temporal, o None si ffmpeg no está
+        disponible o la conversión falla (se usa el original).
+        """
+        if shutil.which("ffmpeg") is None:
+            return None
+        tmp = None
+        try:
+            fd, tmp = tempfile.mkstemp(prefix="whispea_", suffix=".wav")
+            os.close(fd)
+            subprocess.run(
+                ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                 "-i", src_path, "-ar", "16000", "-ac", "1",
+                 "-c:a", "pcm_s16le", tmp],
+                check=True,
+                timeout=600,
+            )
+            return tmp
+        except Exception:
+            if tmp:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+            return None
 
     def save_to_history(self, audio_path, text, language):
         try:
