@@ -20,7 +20,7 @@ Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transc
 ## Requisitos
 
 - Python 3.10+
-- [FFmpeg](https://ffmpeg.org) en el PATH (opcional: faster-whisper decodifica mp3, ogg, flac, m4a y otros formatos nativamente con PyAV, pero FFmpeg sigue siendo útil para otros archivos de audio)
+- [FFmpeg](https://ffmpeg.org) en el PATH (recomendado: se usa para pre-convertir el audio a 16kHz mono antes de transcribir; sin él, faster-whisper decodifica directamente con PyAV)
 - [Ollama](https://ollama.com) instalado + un modelo para los resúmenes (ver Instalación)
 
 ## Instalación
@@ -69,7 +69,7 @@ python main.py
 
 ## Cómo funciona
 
-- **Transcripción**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU usando PyAV para decodificar el audio directamente (mp3, ogg, flac, m4a, wma, aac, opus) sin necesidad de convertir a WAV antes
+- **Transcripción**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU. Antes de transcribir, el audio se pre-convierte a WAV 16kHz mono con FFmpeg (el formato nativo de Whisper); si FFmpeg no está disponible, se usa el archivo original y faster-whisper lo decodifica directamente con PyAV (mp3, ogg, flac, m4a, wma, aac, opus)
 - **Resumen**: la app le pega a un server local de [Ollama](https://ollama.com) (`http://localhost:11434`) con el modelo configurado — el texto nunca sale de tu máquina
 - **Historial**: todo queda en `history/`
 
