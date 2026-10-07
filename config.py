@@ -25,7 +25,7 @@ MAX_SUMMARY_INPUT_CHARS = 25000
 
 def load_prefs():
     defaults = {
-        "model_size": "large",
+        "model_size": "large-v3-turbo",
         "transcription_language": "auto",
         "ui_language": "es",
     }

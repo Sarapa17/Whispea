@@ -50,7 +50,7 @@ cp prefs.example.json prefs.json
 ```
 
 `prefs.json` guarda:
-- `model_size`: `tiny` | `base` | `small` | `medium` | `large` (default: `large`)
+- `model_size`: `tiny` | `base` | `small` | `medium` | `large` | `large-v3-turbo` (default: `large-v3-turbo`)
 - `transcription_language`: código de idioma o `auto`
 - `ui_language`: `es` | `en`
 
