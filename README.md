@@ -1,6 +1,6 @@
 # Whispea
 
-¿Cansado de recibir audios en clase y no poder escucharlos? ¿De tener grabaciones de clases de 2 horas y querer saber si es la clase que necesitás ver ahora? ¿Siempre renegando porque las alternativas web no permiten cosas largas o te piden pagar?
+¿Cansado de recibir audios en clase y no poder escucharlos? ¿De tener grabaciones de clases de 2 horas y necesitar transcribirlas para sacar notas? ¿Siempre renegando porque las alternativas web no permiten cosas largas o te piden pagar?
 
 Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transcribe y resume audio de manera **100% local**, corriendo modelos en tu propia máquina — sin subir nada a ningún server, sin APIs pagas, sin límites de duración.
 
