@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 venv/
+venv-mac/
 
 # Historial local (datos del usuario)
 history/
