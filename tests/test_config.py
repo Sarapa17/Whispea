@@ -30,3 +30,18 @@ def test_load_prefs_merges_saved_values_with_defaults(tmp_path, monkeypatch):
         "transcription_language": "es",
         "ui_language": "en",
     }
+
+
+def test_save_prefs_writes_json_with_utf8_values(tmp_path, monkeypatch):
+    prefs_path = tmp_path / "prefs.json"
+    monkeypatch.setattr(config, "PREFS_PATH", str(prefs_path))
+    prefs = {
+        "model_size": "small",
+        "transcription_language": "es",
+        "ui_language": "es",
+        "label": "Transcripción rápida",
+    }
+
+    config.save_prefs(prefs)
+
+    assert json.loads(prefs_path.read_text(encoding="utf-8")) == prefs
