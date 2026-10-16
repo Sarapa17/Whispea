@@ -173,7 +173,7 @@ class TranscriptionThread(QThread):
 
             return True
 
-        except Exception:
+        except (OSError, TypeError, ValueError):
             return False
 
 
