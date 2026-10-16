@@ -124,7 +124,7 @@ class TranscriptionThread(QThread):
                 timeout=600,
             )
             return tmp
-        except Exception:
+        except (OSError, subprocess.SubprocessError, ValueError):
             if tmp:
                 try:
                     os.remove(tmp)
