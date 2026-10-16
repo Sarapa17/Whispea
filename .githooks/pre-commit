@@ -13,5 +13,19 @@ else
     exit 1
 fi
 
+if [ -n "$VIRTUAL_ENV" ] && command -v ruff >/dev/null 2>&1; then
+    RUFF=ruff
+elif [ -x "./venv-mac/bin/ruff" ]; then
+    RUFF=./venv-mac/bin/ruff
+elif command -v ruff >/dev/null 2>&1; then
+    RUFF=ruff
+else
+    echo "No se encontró Ruff para validar el código." >&2
+    exit 1
+fi
+
+echo "Ejecutando Ruff antes del commit..."
+"$RUFF" check .
+
 echo "Ejecutando tests antes del commit..."
 "$PYTHON" -m pytest -q
