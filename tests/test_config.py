@@ -45,3 +45,17 @@ def test_save_prefs_writes_json_with_utf8_values(tmp_path, monkeypatch):
     config.save_prefs(prefs)
 
     assert json.loads(prefs_path.read_text(encoding="utf-8")) == prefs
+
+
+def test_load_prefs_returns_defaults_when_file_is_invalid(tmp_path, monkeypatch):
+    prefs_path = tmp_path / "prefs.json"
+    prefs_path.write_text("{ preferencias inválidas", encoding="utf-8")
+    monkeypatch.setattr(config, "PREFS_PATH", str(prefs_path))
+
+    prefs = config.load_prefs()
+
+    assert prefs == {
+        "model_size": "large-v3-turbo",
+        "transcription_language": "es",
+        "ui_language": "es",
+    }
