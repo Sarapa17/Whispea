@@ -235,14 +235,14 @@ class SummaryThread(QThread):
                             break
 
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
+                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {e!s}")
                 return
 
             resumen = "".join(full_summary)
             self.finished_signal.emit(self.text_path, resumen, True)
 
-        except Exception as e:
-            self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
+        except Exception as e:  # noqa: BLE001
+            self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {e!s}")
 
 
 class ModelPreloadThread(QThread):
