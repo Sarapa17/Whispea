@@ -599,7 +599,7 @@ class AudioTranscriberApp(QMainWindow):
                 metadata["summary_preview"] = summary[:100]
                 with open(metadata_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, ensure_ascii=False, indent=2)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             print(f"Error saving summary to history: {e}")
 
 def main():
