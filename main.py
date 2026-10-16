@@ -496,9 +496,9 @@ class AudioTranscriberApp(QMainWindow):
             else:
                 self.text_edit.setPlainText(text)
                 self.summary_edit.clear()
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             QMessageBox.critical(self, TRANSLATIONS[self.current_language]["error"], 
-                               f"{TRANSLATIONS[self.current_language]['load_error']}: {str(e)}")
+                               f"{TRANSLATIONS[self.current_language]['load_error']}: {e!s}")
 
     def save_text(self):
         if not self.text_edit.toPlainText():
