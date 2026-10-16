@@ -262,5 +262,5 @@ class ModelPreloadThread(QThread):
                 cpu_threads=8,
             )
             self.finished_signal.emit(self.model_size, model)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.error_signal.emit(str(e))
