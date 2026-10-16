@@ -41,8 +41,8 @@ def save_prefs(prefs):
     try:
         with open(PREFS_PATH, 'w', encoding='utf-8') as f:
             json.dump(prefs, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    except (OSError, TypeError):
+        return
 
 
 def make_flag_icon(country, w=48, h=32):
