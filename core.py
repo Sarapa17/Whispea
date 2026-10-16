@@ -94,8 +94,8 @@ class TranscriptionThread(QThread):
 
             self.finished_signal.emit(self.audio_path, text, success)
 
-        except Exception as e:
-            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {str(e)}")
+        except Exception as e:  # noqa: BLE001
+            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {e!s}")
         finally:
             if tmp_wav:
                 try:
