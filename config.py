@@ -1,10 +1,9 @@
 """Configuración, preferencias e internacionalización de Whispea."""
-import os
 import json
+import os
 
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QIcon, QPainter, QPainterPath, QPixmap, QColor
-
+from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtGui import QColor, QIcon, QPainter, QPainterPath, QPixmap
 
 PREFS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prefs.json")
 
@@ -33,10 +32,8 @@ def load_prefs():
         with open(PREFS_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
         defaults.update(data)
-    except FileNotFoundError:
-        pass
-    except Exception:
-        pass
+    except (json.JSONDecodeError, OSError, TypeError):
+        return defaults
     return defaults
 
 
@@ -44,8 +41,8 @@ def save_prefs(prefs):
     try:
         with open(PREFS_PATH, 'w', encoding='utf-8') as f:
             json.dump(prefs, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    except (OSError, TypeError):
+        return
 
 
 def make_flag_icon(country, w=48, h=32):

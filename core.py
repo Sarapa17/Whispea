@@ -1,22 +1,21 @@
 """Hilos de trabajo (QThread) para transcripción, resumen y precarga de modelo."""
-import os
 import json
+import os
 import shutil
 import subprocess
 import tempfile
-import urllib.request
 import urllib.error
-from pathlib import Path
+import urllib.request
 from datetime import datetime
+from pathlib import Path
 
-from faster_whisper import WhisperModel, BatchedInferencePipeline
-
+from faster_whisper import BatchedInferencePipeline, WhisperModel
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from config import (
+    MAX_SUMMARY_INPUT_CHARS,
     OLLAMA_MODEL,
     PROMPT_TEMPLATE,
-    MAX_SUMMARY_INPUT_CHARS,
     TRANSLATIONS,
 )
 
@@ -95,8 +94,8 @@ class TranscriptionThread(QThread):
 
             self.finished_signal.emit(self.audio_path, text, success)
 
-        except Exception as e:
-            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {str(e)}")
+        except Exception as e:  # noqa: BLE001
+            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {e!s}")
         finally:
             if tmp_wav:
                 try:
@@ -125,7 +124,7 @@ class TranscriptionThread(QThread):
                 timeout=600,
             )
             return tmp
-        except Exception:
+        except (OSError, subprocess.SubprocessError, ValueError):
             if tmp:
                 try:
                     os.remove(tmp)
@@ -174,7 +173,7 @@ class TranscriptionThread(QThread):
 
             return True
 
-        except Exception:
+        except (OSError, TypeError, ValueError):
             return False
 
 
@@ -236,14 +235,14 @@ class SummaryThread(QThread):
                             break
 
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
+                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {e!s}")
                 return
 
             resumen = "".join(full_summary)
             self.finished_signal.emit(self.text_path, resumen, True)
 
-        except Exception as e:
-            self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {str(e)}")
+        except Exception as e:  # noqa: BLE001
+            self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {e!s}")
 
 
 class ModelPreloadThread(QThread):
@@ -263,5 +262,5 @@ class ModelPreloadThread(QThread):
                 cpu_threads=8,
             )
             self.finished_signal.emit(self.model_size, model)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.error_signal.emit(str(e))
