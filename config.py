@@ -32,10 +32,8 @@ def load_prefs():
         with open(PREFS_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
         defaults.update(data)
-    except FileNotFoundError:
-        pass
-    except Exception:
-        pass
+    except (json.JSONDecodeError, OSError, TypeError):
+        return defaults
     return defaults
 
 
