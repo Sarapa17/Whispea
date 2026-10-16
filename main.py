@@ -1,34 +1,47 @@
 """Ventana principal y punto de entrada de Whispea."""
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 # NO REORDENAR: faster_whisper va antes que PyQt5 para que ctranslate2
 # ligue el MSVCP140 del sistema. Si PyQt5 carga primero, su MSVCP140
 # empaquetado gana y el init nativo del modelo muere con AV.
 from faster_whisper import BatchedInferencePipeline
-
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QLabel, QComboBox, QPushButton,
-                             QTextEdit, QListWidget, QFileDialog, QMessageBox,
-                             QProgressBar, QSplitter, QListWidgetItem)
-from PyQt5.QtCore import Qt, QEvent, QSize
-from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QPalette
+from PyQt5.QtCore import QEvent, QSize, Qt
+from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QFont, QPalette
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from config import (
     OLLAMA_MODEL,
     TRANSLATIONS,
     WHISPER_LANGUAGES,
     load_prefs,
-    save_prefs,
     make_flag_icon,
+    save_prefs,
 )
 from core import (
-    TranscriptionThread,
-    SummaryThread,
     ModelPreloadThread,
+    SummaryThread,
+    TranscriptionThread,
 )
+
 
 class AudioTranscriberApp(QMainWindow):
     def __init__(self):
