@@ -281,12 +281,12 @@ class AudioTranscriberApp(QMainWindow):
         try:
             import urllib.request
             urllib.request.urlopen("http://localhost:11434/api/tags", timeout=1)
-        except Exception:
+        except (OSError, TimeoutError, ConnectionError):
             import subprocess
             try:
                 subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            except Exception:
-                pass
+            except (OSError, subprocess.SubprocessError, ValueError):
+                return
 
     def change_ui_language(self, lang_code):
         """Cambia el idioma de la interfaz (es/en)"""
