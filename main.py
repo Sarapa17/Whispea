@@ -478,7 +478,7 @@ class AudioTranscriberApp(QMainWindow):
                 item.setData(Qt.UserRole, metadata)
                 self.history_list.addItem(item)
                 
-            except Exception as e:
+            except (KeyError, OSError, TypeError, ValueError) as e:
                 print(f"Error loading history item: {e}")
 
     def load_history_item(self, item):
