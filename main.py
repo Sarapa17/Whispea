@@ -365,11 +365,6 @@ class AudioTranscriberApp(QMainWindow):
             t.quit()
             t.wait(3000)
 
-        for model in self.model_cache.values():
-            try:
-                del model
-            except Exception:
-                pass
         self.model_cache.clear()
         super().closeEvent(event)
 
