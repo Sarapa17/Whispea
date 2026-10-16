@@ -33,3 +33,20 @@ def test_save_to_history_creates_audio_text_and_metadata(tmp_path):
     assert metadata["original_name"] == "clase.opus"
     assert metadata["model"] == "tiny"
     assert metadata["language"] == "es"
+
+
+def test_save_to_history_returns_false_when_audio_is_missing(tmp_path):
+    missing_audio_path = tmp_path / "missing.opus"
+    thread = TranscriptionThread(
+        audio_path=str(missing_audio_path),
+        model_size="tiny",
+        history_dir=str(tmp_path / "history"),
+        language="es",
+        ui_language="es",
+        model=object(),
+        batched_model=object(),
+    )
+
+    result = thread.save_to_history(str(missing_audio_path), "Texto", "es")
+
+    assert result is False
