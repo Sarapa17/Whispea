@@ -304,7 +304,7 @@ class AudioTranscriberApp(QMainWindow):
         
         # Actualizar etiquetas: mapa inverso de cualquier texto conocido a su key (funciona en ambas direcciones)
         text_to_key = {}
-        for key in TRANSLATIONS["es"].keys():
+        for key in TRANSLATIONS["es"]:
             for lang in TRANSLATIONS:
                 val = TRANSLATIONS[lang].get(key)
                 if val:
