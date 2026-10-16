@@ -1,22 +1,21 @@
 """Hilos de trabajo (QThread) para transcripción, resumen y precarga de modelo."""
-import os
 import json
+import os
 import shutil
 import subprocess
 import tempfile
-import urllib.request
 import urllib.error
-from pathlib import Path
+import urllib.request
 from datetime import datetime
+from pathlib import Path
 
-from faster_whisper import WhisperModel, BatchedInferencePipeline
-
+from faster_whisper import BatchedInferencePipeline, WhisperModel
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from config import (
+    MAX_SUMMARY_INPUT_CHARS,
     OLLAMA_MODEL,
     PROMPT_TEMPLATE,
-    MAX_SUMMARY_INPUT_CHARS,
     TRANSLATIONS,
 )
 
