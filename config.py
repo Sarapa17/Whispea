@@ -1,10 +1,9 @@
 """Configuración, preferencias e internacionalización de Whispea."""
-import os
 import json
+import os
 
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QIcon, QPainter, QPainterPath, QPixmap, QColor
-
+from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtGui import QColor, QIcon, QPainter, QPainterPath, QPixmap
 
 PREFS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prefs.json")
 
