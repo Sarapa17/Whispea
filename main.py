@@ -1,34 +1,47 @@
 """Ventana principal y punto de entrada de Whispea."""
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 # NO REORDENAR: faster_whisper va antes que PyQt5 para que ctranslate2
 # ligue el MSVCP140 del sistema. Si PyQt5 carga primero, su MSVCP140
 # empaquetado gana y el init nativo del modelo muere con AV.
 from faster_whisper import BatchedInferencePipeline
-
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QLabel, QComboBox, QPushButton,
-                             QTextEdit, QListWidget, QFileDialog, QMessageBox,
-                             QProgressBar, QSplitter, QListWidgetItem)
-from PyQt5.QtCore import Qt, QEvent, QSize
-from PyQt5.QtGui import QFont, QDragEnterEvent, QDropEvent, QPalette
+from PyQt5.QtCore import QEvent, QSize, Qt
+from PyQt5.QtGui import QDragEnterEvent, QDropEvent, QFont, QPalette
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from config import (
     OLLAMA_MODEL,
     TRANSLATIONS,
     WHISPER_LANGUAGES,
     load_prefs,
-    save_prefs,
     make_flag_icon,
+    save_prefs,
 )
 from core import (
-    TranscriptionThread,
-    SummaryThread,
     ModelPreloadThread,
+    SummaryThread,
+    TranscriptionThread,
 )
+
 
 class AudioTranscriberApp(QMainWindow):
     def __init__(self):
@@ -268,12 +281,12 @@ class AudioTranscriberApp(QMainWindow):
         try:
             import urllib.request
             urllib.request.urlopen("http://localhost:11434/api/tags", timeout=1)
-        except Exception:
+        except (OSError, TimeoutError, ConnectionError):
             import subprocess
             try:
                 subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            except Exception:
-                pass
+            except (OSError, subprocess.SubprocessError, ValueError):
+                return
 
     def change_ui_language(self, lang_code):
         """Cambia el idioma de la interfaz (es/en)"""
@@ -291,7 +304,7 @@ class AudioTranscriberApp(QMainWindow):
         
         # Actualizar etiquetas: mapa inverso de cualquier texto conocido a su key (funciona en ambas direcciones)
         text_to_key = {}
-        for key in TRANSLATIONS["es"].keys():
+        for key in TRANSLATIONS["es"]:
             for lang in TRANSLATIONS:
                 val = TRANSLATIONS[lang].get(key)
                 if val:
@@ -352,11 +365,6 @@ class AudioTranscriberApp(QMainWindow):
             t.quit()
             t.wait(3000)
 
-        for model in self.model_cache.values():
-            try:
-                del model
-            except Exception:
-                pass
         self.model_cache.clear()
         super().closeEvent(event)
 
@@ -470,7 +478,7 @@ class AudioTranscriberApp(QMainWindow):
                 item.setData(Qt.UserRole, metadata)
                 self.history_list.addItem(item)
                 
-            except Exception as e:
+            except (KeyError, OSError, TypeError, ValueError) as e:
                 print(f"Error loading history item: {e}")
 
     def load_history_item(self, item):
@@ -488,9 +496,9 @@ class AudioTranscriberApp(QMainWindow):
             else:
                 self.text_edit.setPlainText(text)
                 self.summary_edit.clear()
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             QMessageBox.critical(self, TRANSLATIONS[self.current_language]["error"], 
-                               f"{TRANSLATIONS[self.current_language]['load_error']}: {str(e)}")
+                               f"{TRANSLATIONS[self.current_language]['load_error']}: {e!s}")
 
     def save_text(self):
         if not self.text_edit.toPlainText():
@@ -507,9 +515,9 @@ class AudioTranscriberApp(QMainWindow):
                     f.write(self.text_edit.toPlainText())
                 QMessageBox.information(self, TRANSLATIONS[self.current_language]["success"], 
                                       TRANSLATIONS[self.current_language]["text_saved"])
-            except Exception as e:
+            except (OSError, TypeError, ValueError) as e:
                 QMessageBox.critical(self, TRANSLATIONS[self.current_language]["error"], 
-                                   f"{TRANSLATIONS[self.current_language]['error']}: {str(e)}")
+                                   f"{TRANSLATIONS[self.current_language]['error']}: {e!s}")
 
     def copy_text(self):
         if self.text_edit.toPlainText():
@@ -591,7 +599,7 @@ class AudioTranscriberApp(QMainWindow):
                 metadata["summary_preview"] = summary[:100]
                 with open(metadata_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, ensure_ascii=False, indent=2)
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             print(f"Error saving summary to history: {e}")
 
 def main():

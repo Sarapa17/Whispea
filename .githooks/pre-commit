@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -e
+
+if [ -n "$VIRTUAL_ENV" ] && command -v python >/dev/null 2>&1; then
+    PYTHON=python
+elif [ -x "./venv-mac/bin/python" ]; then
+    PYTHON=./venv-mac/bin/python
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON=python3
+else
+    echo "No se encontró un intérprete de Python para ejecutar los tests." >&2
+    exit 1
+fi
+
+if [ -n "$VIRTUAL_ENV" ] && command -v ruff >/dev/null 2>&1; then
+    RUFF=ruff
+elif [ -x "./venv-mac/bin/ruff" ]; then
+    RUFF=./venv-mac/bin/ruff
+elif command -v ruff >/dev/null 2>&1; then
+    RUFF=ruff
+else
+    echo "No se encontró Ruff para validar el código." >&2
+    exit 1
+fi
+
+echo "Ejecutando Ruff antes del commit..."
+"$RUFF" check .
+
+echo "Ejecutando tests antes del commit..."
+"$PYTHON" -m pytest -q
