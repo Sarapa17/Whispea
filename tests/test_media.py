@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import core
 from core import TranscriptionThread
+from main import AudioTranscriberApp
 
 
 class FakeBatchedModel:
@@ -88,3 +89,37 @@ def test_audio_conversion_can_still_fall_back_without_ffmpeg(tmp_path, monkeypat
     monkeypatch.setattr(core.shutil, "which", lambda _: None)
 
     assert TranscriptionThread._convert_to_16k_mono(str(audio_path)) is None
+
+
+def test_media_file_validation_accepts_video_and_audio_but_rejects_other_files(tmp_path):
+    video_path = tmp_path / "clase.mp4"
+    audio_path = tmp_path / "clase.mp3"
+    text_path = tmp_path / "notas.txt"
+    video_path.touch()
+    audio_path.touch()
+    text_path.touch()
+
+    assert AudioTranscriberApp.is_media_file(str(video_path))
+    assert AudioTranscriberApp.is_media_file(str(audio_path))
+    assert not AudioTranscriberApp.is_media_file(str(text_path))
+
+
+def test_file_picker_filter_includes_audio_and_video_formats(monkeypatch):
+    captured = {}
+
+    class FakeApp:
+        current_language = "es"
+
+        def process_audio_file(self, file_path):
+            raise AssertionError("No file should be processed when the dialog is cancelled")
+
+    def fake_get_open_file_name(parent, title, directory, file_filter):
+        captured["filter"] = file_filter
+        return "", ""
+
+    monkeypatch.setattr("main.QFileDialog.getOpenFileName", fake_get_open_file_name)
+
+    AudioTranscriberApp.select_audio_file(FakeApp())
+
+    assert ".mp3" in captured["filter"]
+    assert ".mp4" in captured["filter"]

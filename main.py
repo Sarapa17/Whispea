@@ -40,6 +40,8 @@ from core import (
     ModelPreloadThread,
     SummaryThread,
     TranscriptionThread,
+    SUPPORTED_MEDIA_EXTENSIONS,
+    is_supported_media_file,
 )
 
 
@@ -372,21 +374,22 @@ class AudioTranscriberApp(QMainWindow):
         urls = event.mimeData().urls()
         if urls:
             file_path = urls[0].toLocalFile()
-            if self.is_audio_file(file_path):
+            if self.is_media_file(file_path):
                 self.process_audio_file(file_path)
             else:
                 QMessageBox.warning(self, 
                                    TRANSLATIONS[self.current_language]["invalid_file"], 
                                    TRANSLATIONS[self.current_language]["select_valid_audio"])
 
-    def is_audio_file(self, file_path):
-        audio_extensions = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.wma', '.aac', '.opus']
-        return os.path.isfile(file_path) and Path(file_path).suffix.lower() in audio_extensions
+    @staticmethod
+    def is_media_file(file_path):
+        return is_supported_media_file(file_path)
 
     def select_audio_file(self):
+        file_extensions = " ".join(f"*{extension}" for extension in sorted(SUPPORTED_MEDIA_EXTENSIONS))
+        file_filter = f"{TRANSLATIONS[self.current_language]['media_files']} ({file_extensions})"
         file_path, _ = QFileDialog.getOpenFileName(
-            self, TRANSLATIONS[self.current_language]["select_audio"], "", 
-            "Audio Files (*.mp3 *.wav *.ogg *.flac *.m4a *.wma *.aac *.opus)"
+            self, TRANSLATIONS[self.current_language]["select_audio"], "", file_filter
         )
         if file_path:
             self.process_audio_file(file_path)
