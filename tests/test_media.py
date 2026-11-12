@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -104,6 +105,106 @@ def test_audio_conversion_can_still_fall_back_without_ffmpeg(tmp_path, monkeypat
     monkeypatch.setattr(core.shutil, "which", lambda _: None)
 
     assert TranscriptionThread._convert_to_16k_mono(str(audio_path)) is None
+
+
+def test_opus_archive_uses_mono_16khz_and_32kbps(tmp_path, monkeypatch):
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+    commands = []
+    monkeypatch.setattr(core.shutil, "which", lambda _: "ffmpeg")
+    monkeypatch.setattr(core.subprocess, "run", lambda command, **kwargs: commands.append(command))
+
+    converted_path = TranscriptionThread._convert_to_opus(str(audio_path))
+
+    try:
+        assert converted_path is not None
+        assert converted_path.endswith(".opus")
+        assert commands[0][commands[0].index("-ar") + 1] == "16000"
+        assert commands[0][commands[0].index("-ac") + 1] == "1"
+        assert commands[0][commands[0].index("-c:a") + 1] == "libopus"
+        assert commands[0][commands[0].index("-b:a") + 1] == "32k"
+    finally:
+        if converted_path:
+            core.os.remove(converted_path)
+
+
+def test_video_run_transcribes_wav_and_archives_only_opus(tmp_path, monkeypatch):
+    video_path = tmp_path / "clase.mp4"
+    wav_path = tmp_path / "transcription.wav"
+    opus_path = tmp_path / "archive.opus"
+    history_dir = tmp_path / "history"
+    video_path.write_bytes(b"video")
+    wav_path.write_bytes(b"uncompressed audio")
+    opus_path.write_bytes(b"compressed audio")
+    batched_model = FakeBatchedModel()
+    finished = []
+    thread = make_thread(video_path, history_dir, batched_model)
+    thread.finished_signal.connect(lambda *result: finished.append(result))
+    monkeypatch.setattr(
+        TranscriptionThread,
+        "_convert_to_16k_mono",
+        staticmethod(lambda _: str(wav_path)),
+    )
+    monkeypatch.setattr(
+        TranscriptionThread,
+        "_convert_to_opus",
+        staticmethod(lambda _: str(opus_path)),
+    )
+
+    thread.run()
+
+    assert batched_model.transcribed_paths == [str(wav_path)]
+    assert finished and finished[0][2] is True
+    stored_audio = list(history_dir.glob("*.opus"))
+    assert len(stored_audio) == 1
+    assert not list(history_dir.glob("*.mp4"))
+    metadata = json.loads(next(history_dir.glob("*.json")).read_text(encoding="utf-8"))
+    assert metadata["original_name"] == "clase.mp4"
+    assert not wav_path.exists()
+    assert not opus_path.exists()
+
+
+def test_video_is_not_archived_when_opus_encoding_fails(tmp_path, monkeypatch):
+    video_path = tmp_path / "clase.mp4"
+    wav_path = tmp_path / "transcription.wav"
+    history_dir = tmp_path / "history"
+    video_path.write_bytes(b"video")
+    wav_path.write_bytes(b"audio")
+    batched_model = FakeBatchedModel()
+    errors = []
+    thread = make_thread(video_path, history_dir, batched_model, ui_language="en")
+    thread.error_signal.connect(errors.append)
+    monkeypatch.setattr(
+        TranscriptionThread,
+        "_convert_to_16k_mono",
+        staticmethod(lambda _: str(wav_path)),
+    )
+    monkeypatch.setattr(TranscriptionThread, "_convert_to_opus", staticmethod(lambda _: None))
+
+    thread.run()
+
+    assert errors
+    assert "Could not save compressed audio" in errors[0]
+    assert not history_dir.exists()
+    assert not wav_path.exists()
+
+
+def test_audio_falls_back_to_original_when_opus_is_unavailable(tmp_path, monkeypatch):
+    audio_path = tmp_path / "clase.mp3"
+    history_dir = tmp_path / "history"
+    audio_path.write_bytes(b"audio")
+    batched_model = FakeBatchedModel()
+    finished = []
+    thread = make_thread(audio_path, history_dir, batched_model)
+    thread.finished_signal.connect(lambda *result: finished.append(result))
+    monkeypatch.setattr(TranscriptionThread, "_convert_to_16k_mono", staticmethod(lambda _: None))
+    monkeypatch.setattr(TranscriptionThread, "_convert_to_opus", staticmethod(lambda _: None))
+
+    thread.run()
+
+    assert batched_model.transcribed_paths == [str(audio_path)]
+    assert finished and finished[0][2] is True
+    assert len(list(history_dir.glob("*.mp3"))) == 1
 
 
 def test_media_file_validation_accepts_video_and_audio_but_rejects_other_files(tmp_path):

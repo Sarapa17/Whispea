@@ -50,3 +50,34 @@ def test_save_to_history_returns_false_when_audio_is_missing(tmp_path):
     result = thread.save_to_history(str(missing_audio_path), "Texto", "es")
 
     assert result is False
+
+
+def test_save_to_history_uses_compressed_audio_and_keeps_original_name(tmp_path):
+    video_path = tmp_path / "clase.mp4"
+    archive_path = tmp_path / "clase.opus"
+    history_dir = tmp_path / "history"
+    video_path.write_bytes(b"video data")
+    archive_path.write_bytes(b"compressed audio")
+    thread = TranscriptionThread(
+        audio_path=str(video_path),
+        model_size="tiny",
+        history_dir=str(history_dir),
+        language="es",
+        ui_language="es",
+        model=object(),
+        batched_model=object(),
+    )
+
+    result = thread.save_to_history(
+        str(video_path), "Texto transcripto", "es", archive_audio_path=str(archive_path)
+    )
+
+    assert result is True
+    stored_audio = list(history_dir.glob("*.opus"))
+    assert len(stored_audio) == 1
+    assert stored_audio[0].read_bytes() == b"compressed audio"
+    assert not list(history_dir.glob("*.mp4"))
+
+    metadata = json.loads(next(history_dir.glob("*.json")).read_text(encoding="utf-8"))
+    assert metadata["audio_file"] == stored_audio[0].name
+    assert metadata["original_name"] == "clase.mp4"
