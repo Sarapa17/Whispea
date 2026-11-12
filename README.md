@@ -20,7 +20,7 @@ Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transc
 ## Requisitos
 
 - Python 3.10+
-- [FFmpeg](https://ffmpeg.org) en el PATH (recomendado: se usa para pre-convertir el audio a 16kHz mono antes de transcribir; sin él, faster-whisper decodifica directamente con PyAV)
+- [FFmpeg](https://ffmpeg.org) en el PATH (obligatorio para extraer audio de videos; recomendado para pre-convertir audio a 16kHz mono. Sin FFmpeg, los formatos de audio compatibles se decodifican directamente con PyAV)
 - [Ollama](https://ollama.com) instalado + un modelo para los resúmenes (ver Instalación)
 
 ## Instalación
@@ -62,14 +62,15 @@ El archivo está en `.gitignore` para que sea local por usuario.
 python main.py
 ```
 
-1. Seleccioná o arrastrá un archivo de audio (mp3, wav, ogg, flac, m4a, wma, aac, opus)
+1. Seleccioná o arrastrá un archivo de audio (mp3, wav, ogg, flac, m4a, wma, aac, opus) o video (mp4, mov, mkv, avi, webm, m4v, mpeg, mpg) con una pista de audio
 2. Esperá a que termine la transcripción
 3. Clic en **"Resumir con IA"** para generar el resumen
 4. **"Copiar resumen"** / **"Copiar texto"** / **"Guardar texto"** para lo que necesites
 
 ## Cómo funciona
 
-- **Transcripción**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU. Antes de transcribir, el audio se pre-convierte a WAV 16kHz mono con FFmpeg (el formato nativo de Whisper); si FFmpeg no está disponible, se usa el archivo original y faster-whisper lo decodifica directamente con PyAV (mp3, ogg, flac, m4a, wma, aac, opus)
+- **Transcripción de audio**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU. Si FFmpeg está disponible, el audio se pre-convierte a WAV 16kHz mono; si no, faster-whisper decodifica directamente con PyAV.
+- **Entrada de video**: FFmpeg extrae la pista de audio y la convierte a WAV 16kHz mono temporal. El temporal se elimina al terminar; si falta FFmpeg o el video no tiene audio, la app informa el error. El historial conserva el archivo original.
 - **Resumen**: la app le pega a un server local de [Ollama](https://ollama.com) (`http://localhost:11434`) con el modelo configurado — el texto nunca sale de tu máquina
 - **Historial**: todo queda en `history/`
 
