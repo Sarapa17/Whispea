@@ -22,7 +22,7 @@ Yo también. Por eso armé **Whispea**: una herramienta de escritorio que transc
 ## Requisitos
 
 - Python 3.10+
-- [FFmpeg](https://ffmpeg.org) en el PATH (recomendado: se usa para pre-convertir el audio a 16kHz mono antes de transcribir; sin él, faster-whisper decodifica directamente con PyAV)
+- [FFmpeg](https://ffmpeg.org) en el PATH (obligatorio para videos; recomendado para audio. Se usa para preparar el audio y guardar una copia comprimida en el historial; sin FFmpeg, el audio compatible se decodifica con PyAV y se conserva en su formato original)
 - [Ollama](https://ollama.com) instalado + un modelo para los resúmenes (ver Instalación)
 
 ## Instalación
@@ -68,7 +68,7 @@ Si no creás el archivo, la app usa los valores por defecto y lo genera automát
 python main.py
 ```
 
-1. Seleccioná o arrastrá un archivo de audio (mp3, wav, ogg, flac, m4a, wma, aac, opus)
+1. Seleccioná o arrastrá un archivo de audio (mp3, wav, ogg, flac, m4a, wma, aac, opus) o video (mp4, mov, mkv, avi, webm, m4v, mpeg, mpg) con una pista de audio
 2. Esperá a que termine la transcripción
 3. Clic en **"Resumir con IA"** para generar el resumen
 4. **"Copiar resumen"** / **"Copiar texto"** / **"Guardar texto"** para lo que necesites
@@ -79,7 +79,7 @@ Al abrir la app se precarga el modelo Whisper elegido. Si Ollama no está corrie
 
 Cada transcripción crea tres archivos en `history/`:
 
-- `<timestamp>.<ext>` → copia del audio original
+- `<timestamp>.<ext>` → copia de audio en Opus mono a 32 kb/s cuando FFmpeg está disponible; si no, se conserva la fuente de audio original. Los videos no se copian al historial.
 - `<timestamp>.txt` → texto transcripto y, si se generó, el resumen bajo el encabezado `RESUMEN (IA):`
 - `<timestamp>.json` → metadatos (nombre original, fecha, modelo, idioma y preview del texto)
 
@@ -87,11 +87,12 @@ La carpeta `history/` está en `.gitignore` y queda solo en tu máquina.
 
 ## Cómo funciona
 
-- **Transcripción**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU. Antes de transcribir, el audio se pre-convierte a WAV 16kHz mono con FFmpeg (el formato nativo de Whisper); si FFmpeg no está disponible, se usa el archivo original y faster-whisper lo decodifica directamente con PyAV (mp3, ogg, flac, m4a, wma, aac, opus)
+- **Transcripción de audio**: [faster-whisper](https://github.com/faster-whisper/faster-whisper) corre 100% local en CPU. Si FFmpeg está disponible, el audio se pre-convierte a WAV 16kHz mono; si no, faster-whisper decodifica directamente con PyAV.
+- **Entrada de video**: FFmpeg extrae la pista de audio para transcribirla desde un WAV 16kHz mono temporal, que se elimina al terminar. El historial guarda el audio como Opus mono a 32 kb/s, no copia el video, y conserva su nombre original en los metadatos.
 - **Modelo**: se precarga al iniciar y se cachea por tamaño; al cambiar de modelo, se carga la primera vez que transcribís
 - **Resumen**: la app le pega a un server local de [Ollama](https://ollama.com) (`http://localhost:11434`) con el modelo configurado y muestra la respuesta en streaming — el texto nunca sale de tu máquina
 - **Ollama**: si el server no está corriendo, la app intenta levantarlo con `ollama serve`; si no está instalado, muestra un error claro
-- **Historial**: todo queda en `history/`
+- **Historial**: transcripciones, resúmenes y metadatos quedan en `history/`. Con FFmpeg, el medio se guarda como audio Opus mono a 32 kb/s; sin FFmpeg, se conserva la fuente de audio original.
 
 ## Estructura del proyecto
 

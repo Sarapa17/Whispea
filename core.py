@@ -19,6 +19,22 @@ from config import (
     TRANSLATIONS,
 )
 
+AUDIO_EXTENSIONS = frozenset({".mp3", ".wav", ".ogg", ".flac", ".m4a", ".wma", ".aac", ".opus"})
+VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".mpeg", ".mpg"})
+SUPPORTED_MEDIA_EXTENSIONS = AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
+
+
+class MediaConversionError(RuntimeError):
+    """Raised when a video cannot be converted to an audio stream."""
+
+
+def is_video_file(file_path):
+    return Path(file_path).suffix.lower() in VIDEO_EXTENSIONS
+
+
+def is_supported_media_file(file_path):
+    return os.path.isfile(file_path) and Path(file_path).suffix.lower() in SUPPORTED_MEDIA_EXTENSIONS
+
 
 class TranscriptionThread(QThread):
     """Hilo para realizar la transcripción en segundo plano"""
@@ -38,6 +54,7 @@ class TranscriptionThread(QThread):
 
     def run(self):
         tmp_wav = None
+        tmp_opus = None
         try:
             model = self._model
             batched_model = self._batched_model
@@ -89,37 +106,44 @@ class TranscriptionThread(QThread):
             text = "".join(text_parts).strip()
 
             self.progress_signal.emit(90, TRANSLATIONS[self.ui_language]["saving_results"])
-            # Guardar en historial (el audio original, no el temporal)
-            success = self.save_to_history(self.audio_path, text, self.language)
+            tmp_opus = self._convert_to_opus(transcribe_path)
+            if is_video_file(self.audio_path) and tmp_opus is None:
+                raise MediaConversionError("video_archive_failed")
+            success = self.save_to_history(
+                self.audio_path,
+                text,
+                self.language,
+                archive_audio_path=tmp_opus,
+            )
 
             self.finished_signal.emit(self.audio_path, text, success)
 
+        except MediaConversionError as e:
+            message = TRANSLATIONS[self.ui_language][str(e)]
+            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {message}")
         except Exception as e:  # noqa: BLE001
             self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {e!s}")
         finally:
-            if tmp_wav:
-                try:
-                    os.remove(tmp_wav)
-                except OSError:
-                    pass
+            for temporary_path in (tmp_wav, tmp_opus):
+                if temporary_path:
+                    try:
+                        os.remove(temporary_path)
+                    except OSError:
+                        pass
 
     @staticmethod
-    def _convert_to_16k_mono(src_path):
-        """Convierte el audio a WAV 16kHz mono en un archivo temporal.
-
-        Devuelve la ruta del temporal, o None si ffmpeg no está
-        disponible o la conversión falla (se usa el original).
-        """
+    def _convert_to_opus(src_path):
+        """Creates a compact mono Opus archive at 16 kHz and 32 kb/s."""
         if shutil.which("ffmpeg") is None:
             return None
         tmp = None
         try:
-            fd, tmp = tempfile.mkstemp(prefix="whispea_", suffix=".wav")
+            fd, tmp = tempfile.mkstemp(prefix="whispea_archive_", suffix=".opus")
             os.close(fd)
             subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                 "-i", src_path, "-ar", "16000", "-ac", "1",
-                 "-c:a", "pcm_s16le", tmp],
+                 "-i", src_path, "-vn", "-ar", "16000", "-ac", "1",
+                 "-c:a", "libopus", "-b:a", "32k", tmp],
                 check=True,
                 timeout=600,
             )
@@ -132,7 +156,41 @@ class TranscriptionThread(QThread):
                     pass
             return None
 
-    def save_to_history(self, audio_path, text, language):
+    @staticmethod
+    def _convert_to_16k_mono(src_path):
+        """Convierte el audio a WAV 16kHz mono en un archivo temporal.
+
+        Para audio devuelve None si FFmpeg no está disponible o falla.
+        Para video lanza MediaConversionError en esos casos.
+        """
+        is_video = is_video_file(src_path)
+        if shutil.which("ffmpeg") is None:
+            if is_video:
+                raise MediaConversionError("video_ffmpeg_required")
+            return None
+        tmp = None
+        try:
+            fd, tmp = tempfile.mkstemp(prefix="whispea_", suffix=".wav")
+            os.close(fd)
+            subprocess.run(
+                ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                 "-i", src_path, "-vn", "-ar", "16000", "-ac", "1",
+                 "-c:a", "pcm_s16le", tmp],
+                check=True,
+                timeout=600,
+            )
+            return tmp
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
+            if tmp:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+            if is_video:
+                raise MediaConversionError("video_audio_extract_failed") from error
+            return None
+
+    def save_to_history(self, audio_path, text, language, archive_audio_path=None):
         try:
             # Crear directorio de historial si no existe
             os.makedirs(self.history_dir, exist_ok=True)
@@ -142,9 +200,10 @@ class TranscriptionThread(QThread):
             base_name = f"audio_{timestamp}"
 
             # Copiar archivo de audio al historial
-            audio_ext = Path(audio_path).suffix
+            archive_source = archive_audio_path or audio_path
+            audio_ext = Path(archive_source).suffix
             history_audio_path = os.path.join(self.history_dir, f"{base_name}{audio_ext}")
-            shutil.copy2(audio_path, history_audio_path)
+            shutil.copy2(archive_source, history_audio_path)
 
             # Guardar texto transcrito
             text_path = os.path.join(self.history_dir, f"{base_name}.txt")
