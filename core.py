@@ -19,6 +19,22 @@ from config import (
     TRANSLATIONS,
 )
 
+AUDIO_EXTENSIONS = frozenset({".mp3", ".wav", ".ogg", ".flac", ".m4a", ".wma", ".aac", ".opus"})
+VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".mpeg", ".mpg"})
+SUPPORTED_MEDIA_EXTENSIONS = AUDIO_EXTENSIONS | VIDEO_EXTENSIONS
+
+
+class MediaConversionError(RuntimeError):
+    """Raised when a video cannot be converted to an audio stream."""
+
+
+def is_video_file(file_path):
+    return Path(file_path).suffix.lower() in VIDEO_EXTENSIONS
+
+
+def is_supported_media_file(file_path):
+    return os.path.isfile(file_path) and Path(file_path).suffix.lower() in SUPPORTED_MEDIA_EXTENSIONS
+
 
 class TranscriptionThread(QThread):
     """Hilo para realizar la transcripción en segundo plano"""
@@ -94,6 +110,9 @@ class TranscriptionThread(QThread):
 
             self.finished_signal.emit(self.audio_path, text, success)
 
+        except MediaConversionError as e:
+            message = TRANSLATIONS[self.ui_language][str(e)]
+            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {message}")
         except Exception as e:  # noqa: BLE001
             self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {e!s}")
         finally:
@@ -107,10 +126,13 @@ class TranscriptionThread(QThread):
     def _convert_to_16k_mono(src_path):
         """Convierte el audio a WAV 16kHz mono en un archivo temporal.
 
-        Devuelve la ruta del temporal, o None si ffmpeg no está
-        disponible o la conversión falla (se usa el original).
+        Para audio devuelve None si FFmpeg no está disponible o falla.
+        Para video lanza MediaConversionError en esos casos.
         """
+        is_video = is_video_file(src_path)
         if shutil.which("ffmpeg") is None:
+            if is_video:
+                raise MediaConversionError("video_ffmpeg_required")
             return None
         tmp = None
         try:
@@ -118,18 +140,20 @@ class TranscriptionThread(QThread):
             os.close(fd)
             subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                 "-i", src_path, "-ar", "16000", "-ac", "1",
+                 "-i", src_path, "-vn", "-ar", "16000", "-ac", "1",
                  "-c:a", "pcm_s16le", tmp],
                 check=True,
                 timeout=600,
             )
             return tmp
-        except (OSError, subprocess.SubprocessError, ValueError):
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
             if tmp:
                 try:
                     os.remove(tmp)
                 except OSError:
                     pass
+            if is_video:
+                raise MediaConversionError("video_audio_extract_failed") from error
             return None
 
     def save_to_history(self, audio_path, text, language):
