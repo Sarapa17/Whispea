@@ -15,13 +15,13 @@ class FakeBatchedModel:
         return iter(()), SimpleNamespace(duration=0)
 
 
-def make_thread(video_path, history_dir, batched_model):
+def make_thread(video_path, history_dir, batched_model, ui_language="es"):
     return TranscriptionThread(
         audio_path=str(video_path),
         model_size="tiny",
         history_dir=str(history_dir),
         language="es",
-        ui_language="es",
+        ui_language=ui_language,
         model=object(),
         batched_model=batched_model,
     )
@@ -40,6 +40,21 @@ def test_video_requires_ffmpeg_instead_of_transcribing_original(tmp_path, monkey
 
     assert errors
     assert not batched_model.transcribed_paths
+
+
+def test_video_conversion_error_uses_selected_ui_language(tmp_path, monkeypatch):
+    video_path = tmp_path / "clase.mp4"
+    video_path.write_bytes(b"video")
+    batched_model = FakeBatchedModel()
+    errors = []
+    thread = make_thread(video_path, tmp_path / "history", batched_model, ui_language="en")
+    thread.error_signal.connect(errors.append)
+    monkeypatch.setattr(core.shutil, "which", lambda _: None)
+
+    thread.run()
+
+    assert errors
+    assert "FFmpeg is required" in errors[0]
 
 
 def test_video_conversion_disables_video_stream(tmp_path, monkeypatch):

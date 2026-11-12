@@ -110,6 +110,9 @@ class TranscriptionThread(QThread):
 
             self.finished_signal.emit(self.audio_path, text, success)
 
+        except MediaConversionError as e:
+            message = TRANSLATIONS[self.ui_language][str(e)]
+            self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {message}")
         except Exception as e:  # noqa: BLE001
             self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {e!s}")
         finally:
@@ -129,7 +132,7 @@ class TranscriptionThread(QThread):
         is_video = is_video_file(src_path)
         if shutil.which("ffmpeg") is None:
             if is_video:
-                raise MediaConversionError("FFmpeg es necesario para extraer audio de videos.")
+                raise MediaConversionError("video_ffmpeg_required")
             return None
         tmp = None
         try:
@@ -150,9 +153,7 @@ class TranscriptionThread(QThread):
                 except OSError:
                     pass
             if is_video:
-                raise MediaConversionError(
-                    "No se pudo extraer audio del video; verifica que tenga una pista de audio."
-                ) from error
+                raise MediaConversionError("video_audio_extract_failed") from error
             return None
 
     def save_to_history(self, audio_path, text, language):
