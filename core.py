@@ -54,6 +54,7 @@ class TranscriptionThread(QThread):
 
     def run(self):
         tmp_wav = None
+        tmp_opus = None
         try:
             model = self._model
             batched_model = self._batched_model
@@ -105,8 +106,15 @@ class TranscriptionThread(QThread):
             text = "".join(text_parts).strip()
 
             self.progress_signal.emit(90, TRANSLATIONS[self.ui_language]["saving_results"])
-            # Guardar en historial (el audio original, no el temporal)
-            success = self.save_to_history(self.audio_path, text, self.language)
+            tmp_opus = self._convert_to_opus(transcribe_path)
+            if is_video_file(self.audio_path) and tmp_opus is None:
+                raise MediaConversionError("video_archive_failed")
+            success = self.save_to_history(
+                self.audio_path,
+                text,
+                self.language,
+                archive_audio_path=tmp_opus,
+            )
 
             self.finished_signal.emit(self.audio_path, text, success)
 
@@ -116,11 +124,37 @@ class TranscriptionThread(QThread):
         except Exception as e:  # noqa: BLE001
             self.error_signal.emit(f"{TRANSLATIONS[self.ui_language]['unexpected_error']}: {e!s}")
         finally:
-            if tmp_wav:
+            for temporary_path in (tmp_wav, tmp_opus):
+                if temporary_path:
+                    try:
+                        os.remove(temporary_path)
+                    except OSError:
+                        pass
+
+    @staticmethod
+    def _convert_to_opus(src_path):
+        """Creates a compact mono Opus archive at 16 kHz and 32 kb/s."""
+        if shutil.which("ffmpeg") is None:
+            return None
+        tmp = None
+        try:
+            fd, tmp = tempfile.mkstemp(prefix="whispea_archive_", suffix=".opus")
+            os.close(fd)
+            subprocess.run(
+                ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                 "-i", src_path, "-vn", "-ar", "16000", "-ac", "1",
+                 "-c:a", "libopus", "-b:a", "32k", tmp],
+                check=True,
+                timeout=600,
+            )
+            return tmp
+        except (OSError, subprocess.SubprocessError, ValueError):
+            if tmp:
                 try:
-                    os.remove(tmp_wav)
+                    os.remove(tmp)
                 except OSError:
                     pass
+            return None
 
     @staticmethod
     def _convert_to_16k_mono(src_path):
@@ -156,7 +190,7 @@ class TranscriptionThread(QThread):
                 raise MediaConversionError("video_audio_extract_failed") from error
             return None
 
-    def save_to_history(self, audio_path, text, language):
+    def save_to_history(self, audio_path, text, language, archive_audio_path=None):
         try:
             # Crear directorio de historial si no existe
             os.makedirs(self.history_dir, exist_ok=True)
@@ -166,9 +200,10 @@ class TranscriptionThread(QThread):
             base_name = f"audio_{timestamp}"
 
             # Copiar archivo de audio al historial
-            audio_ext = Path(audio_path).suffix
+            archive_source = archive_audio_path or audio_path
+            audio_ext = Path(archive_source).suffix
             history_audio_path = os.path.join(self.history_dir, f"{base_name}{audio_ext}")
-            shutil.copy2(audio_path, history_audio_path)
+            shutil.copy2(archive_source, history_audio_path)
 
             # Guardar texto transcrito
             text_path = os.path.join(self.history_dir, f"{base_name}.txt")
