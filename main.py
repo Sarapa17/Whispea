@@ -37,10 +37,10 @@ from config import (
     save_prefs,
 )
 from core import (
+    SUPPORTED_MEDIA_EXTENSIONS,
     ModelPreloadThread,
     SummaryThread,
     TranscriptionThread,
-    SUPPORTED_MEDIA_EXTENSIONS,
     is_supported_media_file,
 )
 
@@ -547,7 +547,7 @@ class AudioTranscriberApp(QMainWindow):
         self.progress_bar.setVisible(True)
         self.status_label.setText(TRANSLATIONS[self.current_language]["summarizing_ai"])
 
-        self.summary_thread = SummaryThread(text, self.current_text_path)
+        self.summary_thread = SummaryThread(text, self.current_text_path, self.current_language)
         self.summary_thread.chunk_signal.connect(self.append_summary_chunk)
         self.summary_thread.finished_signal.connect(self.summary_finished)
         self.summary_thread.error_signal.connect(self.summary_error)
@@ -598,7 +598,7 @@ class AudioTranscriberApp(QMainWindow):
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     metadata = json.load(f)
                 metadata["summary"] = True
-                metadata["summary_model"] = OLLAMA_MODEL
+                metadata["summary_model"] = getattr(self.summary_thread, "model_used", OLLAMA_MODEL)
                 metadata["summary_preview"] = summary[:100]
                 with open(metadata_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, ensure_ascii=False, indent=2)

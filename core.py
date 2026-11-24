@@ -236,28 +236,93 @@ class TranscriptionThread(QThread):
             return False
 
 
+def select_ollama_model(available_models, preferred_model=OLLAMA_MODEL):
+    """Elige el modelo configurado si está instalado o un fallback disponible."""
+    names = [m for m in available_models if isinstance(m, str) and m.strip()]
+    if not names:
+        return None
+    if preferred_model in names:
+        return preferred_model
+    preferred_base = preferred_model.split(":", 1)[0]
+    for name in names:
+        if name.split(":", 1)[0] == preferred_base:
+            return name
+    non_specialized = [
+        name for name in names
+        if not any(tag in name.lower() for tag in ("embed", "nomic-embed", "bge-", "coder"))
+    ]
+    if non_specialized:
+        return non_specialized[0]
+    non_embedding = [
+        name for name in names
+        if not any(tag in name.lower() for tag in ("embed", "nomic-embed", "bge-"))
+    ]
+    return non_embedding[0] if non_embedding else names[0]
+
+
+def _extract_http_error_detail(error):
+    """Extrae el mensaje de error JSON devuelto por Ollama en un HTTPError."""
+    try:
+        raw_body = error.read()
+        if raw_body:
+            payload = json.loads(raw_body.decode("utf-8", errors="replace"))
+            if isinstance(payload, dict) and payload.get("error"):
+                return str(payload["error"])
+    except (AttributeError, OSError, ValueError, TypeError):
+        pass
+    return str(error)
+
+
 class SummaryThread(QThread):
     """Hilo para generar el resumen con Ollama en segundo plano"""
     chunk_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(str, str, bool)  # text_path, summary, success
     error_signal = pyqtSignal(str)
 
-    def __init__(self, text, text_path):
+    def __init__(self, text, text_path, ui_language="es"):
         super().__init__()
         self.text = text[:MAX_SUMMARY_INPUT_CHARS]
         self.text_path = text_path
+        self.ui_language = ui_language if ui_language in TRANSLATIONS else "es"
+        self.model_used = OLLAMA_MODEL
+
+    @staticmethod
+    def _fetch_installed_models():
+        with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as resp:
+            raw = resp.read().decode("utf-8")
+        data = json.loads(raw) if raw else {}
+        models = data.get("models", []) if isinstance(data, dict) else []
+        return [
+            m.get("name") or m.get("model")
+            for m in models
+            if isinstance(m, dict) and (m.get("name") or m.get("model"))
+        ]
 
     def run(self):
+        strings = TRANSLATIONS[self.ui_language]
         try:
             try:
-                urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3)
-            except (urllib.error.URLError, TimeoutError, ConnectionError):
-                self.error_signal.emit(TRANSLATIONS["es"]["ollama_error"])
+                installed_models = self._fetch_installed_models()
+            except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError):
+                self.error_signal.emit(strings["ollama_error"])
                 return
+
+            selected_model = select_ollama_model(installed_models, OLLAMA_MODEL)
+            if not selected_model:
+                msg_template = strings.get(
+                    "ollama_no_models_error",
+                    "No hay modelos instalados en Ollama. Ejecutá 'ollama pull {model}' en la terminal.",
+                )
+                self.error_signal.emit(
+                    f"{strings['summary_error']}: {msg_template.format(model=OLLAMA_MODEL)}"
+                )
+                return
+
+            self.model_used = selected_model
 
             try:
                 body = json.dumps({
-                    "model": OLLAMA_MODEL,
+                    "model": selected_model,
                     "prompt": PROMPT_TEMPLATE.format(texto=self.text),
                     "stream": True,
                     "options": {"num_ctx": 8192, "temperature": 0.2, "top_p": 0.9}
@@ -281,7 +346,7 @@ class SummaryThread(QThread):
 
                         if "error" in chunk:
                             self.error_signal.emit(
-                                f"{TRANSLATIONS['es']['summary_error']}: {chunk['error']}"
+                                f"{strings['summary_error']}: {chunk['error']}"
                             )
                             return
 
@@ -293,15 +358,19 @@ class SummaryThread(QThread):
                         if chunk.get("done"):
                             break
 
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-                self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {e!s}")
+            except urllib.error.HTTPError as e:
+                detail = _extract_http_error_detail(e)
+                self.error_signal.emit(f"{strings['summary_error']}: {detail}")
+                return
+            except (urllib.error.URLError, TimeoutError) as e:
+                self.error_signal.emit(f"{strings['summary_error']}: {e!s}")
                 return
 
             resumen = "".join(full_summary)
             self.finished_signal.emit(self.text_path, resumen, True)
 
         except Exception as e:  # noqa: BLE001
-            self.error_signal.emit(f"{TRANSLATIONS['es']['summary_error']}: {e!s}")
+            self.error_signal.emit(f"{strings['summary_error']}: {e!s}")
 
 
 class ModelPreloadThread(QThread):
