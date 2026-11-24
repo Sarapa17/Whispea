@@ -136,6 +136,7 @@ def load_translations():
                 "summarizing_ai": "Resumiendo con IA...",
                 "summary_complete": "Resumen completado",
                 "ollama_error": "Ollama no está disponible. Instalalo con 'winget install Ollama.Ollama' y asegurate de que esté corriendo.",
+                "ollama_no_models_error": "No hay modelos instalados en Ollama. Ejecutá 'ollama pull {model}' en la terminal.",
                 "no_text_summary": "No hay texto para resumir.",
                 "summary_error": "Error al generar el resumen"
             },
@@ -181,6 +182,7 @@ def load_translations():
                 "summarizing_ai": "Summarizing with AI...",
                 "summary_complete": "Summary completed",
                 "ollama_error": "Ollama is not available. Install it with 'winget install Ollama.Ollama' and make sure it is running.",
+                "ollama_no_models_error": "No models are installed in Ollama. Run 'ollama pull {model}' in your terminal.",
                 "no_text_summary": "There is no text to summarize.",
                 "summary_error": "Error generating summary"
             }
